@@ -1,0 +1,9 @@
+{
+    "name": "Mjölnir",
+    "version_number": "1.0.0",
+    "website_url": "https://discord.gg/KKHujtRGvB",
+    "description": "A hammer granting you the power of Thor. Move faster, attack harder, & call upon lightning",
+    "dependencies": [
+        
+    ]
+}

@@ -2,10 +2,12 @@
 using HarmonyLib;
 using System;
 using BepInEx.Logging;
+using BepInEx.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using System.IO;
 
 namespace Mjolnir
 {
@@ -14,15 +16,23 @@ namespace Mjolnir
     public class Mjolnir : BaseUnityPlugin
     {
         public const string PluginId = "azumatt.Mjolnir";
+        public const string Author = "Azumatt";
+        public const string PluginName = "Mjolnir";
+        public const string Version = "0.1.2";
         private Harmony _harmony;
         private static GameObject mjolnir;
         public static ManualLogSource logSource;
+        private ConfigFile m_localizationFile;
+        private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
         public const string version = "1.0.0";
 
         private void Awake()
         {
+            m_localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
             LoadAssets();
+
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
+            Localize();
         }
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
@@ -74,7 +84,7 @@ namespace Mjolnir
             {
                 if (ObjectDB.instance.m_recipes.Count() == 0)
                 {
-                    logSource.LogInfo("Recipe database not ready for stuff, skipping initialization.");
+                    //logSource.LogInfo("Recipe database not ready for stuff, skipping initialization.");
                     return;
                 }
                 Recipe();
@@ -106,7 +116,7 @@ namespace Mjolnir
                 new Piece.Requirement(){m_resItem = thing3.GetComponent<ItemDrop>(), m_amount = 1, m_amountPerLevel = 1, m_recover = true},
                 new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = 3, m_amountPerLevel = 1, m_recover = true}
             };
-            logSource.LogInfo("Loaded mjolnir Recipe");
+            //logSource.LogInfo("Loaded mjolnir Recipe");
             ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
@@ -117,7 +127,7 @@ namespace Mjolnir
             public static bool Prefix(ZNetScene __instance)
             {
                 TryRegisterFabs(__instance);
-                logSource.LogInfo("Loading the prefabs");
+                //logSource.LogInfo("Loading the prefabs");
                 return true;
             }
         }
@@ -127,7 +137,7 @@ namespace Mjolnir
         {
             public static void Postfix()
             {
-                logSource.LogInfo("Trying to register Items");
+                //logSource.LogInfo("Trying to register Items");
                 RegisterItems();
                 AddSomeRecipes();
             }
@@ -137,14 +147,34 @@ namespace Mjolnir
         {
             public static void Postfix()
             {
-                logSource.LogInfo("Trying to register Items");
                 RegisterItems();
                 AddSomeRecipes();
             }
         }
         private void OnDestroy()
         {
+            m_localizationFile.Save();
             _harmony?.UnpatchSelf();
+        }
+
+        private void Localize()
+        {
+            LocalizeWord("item_mjolnir", "Mjölnir");
+            LocalizeWord("item_mjolnir_description", "The powerful hammer of the Thunder God Thor");
+        }
+
+        public string LocalizeWord(string key, string val)
+        {
+            if (!m_localizedStrings.ContainsKey(key))
+            {
+                var loc = Localization.instance;
+                var langSection = loc.GetSelectedLanguage();
+                var configEntry = m_localizationFile.Bind(langSection, key, val);
+                Localization.instance.AddWord(key, configEntry.Value);
+                m_localizedStrings.Add(key, configEntry);
+            }
+
+            return $"${key}";
         }
     }
 }

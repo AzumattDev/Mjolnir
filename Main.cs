@@ -16,7 +16,7 @@ namespace Mjolnir
     [BepInPlugin(PluginId, "Mjolnir", version)]
     public class Mjolnir : BaseUnityPlugin
     {
-        public const string version = "1.0.0";
+        public const string version = "1.0.1";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
@@ -32,6 +32,11 @@ namespace Mjolnir
         public static ConfigEntry<int> nexusID;
 
         public static ConfigEntry<int> reqm_minStationLevel;
+
+        public static ConfigEntry<string> req1Prefab;
+        public static ConfigEntry<string> req2Prefab;
+        public static ConfigEntry<string> req3Prefab;
+        public static ConfigEntry<string> req4Prefab;
 
         public static ConfigEntry<int> req1Amount;
         public static ConfigEntry<int> req2Amount;
@@ -76,20 +81,24 @@ namespace Mjolnir
             }
 
             /* Item 1 */
-            req1Amount = itemConfig("FineWood", "Amount Required", 30, "Amount needed of this item for crafting");
-            req1APL = itemConfig("FineWood", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
+            req1Prefab = itemConfig("Item 1", "Required Prefab", "FineWood", "Required item for crafting");
+            req1Amount = itemConfig("Item 1", "Amount Required", 30, "Amount needed of this item for crafting");
+            req1APL = itemConfig("Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 2 */
-            req2Amount = itemConfig("Stone", "Amount Required", 30, "Amount needed of this item for crafting");
-            req2APL = itemConfig("Stone", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
+            req2Prefab = itemConfig("Item 2", "Required Prefab", "Stone", "Required item for crafting");
+            req2Amount = itemConfig("Item 2", "Amount Required", 30, "Amount needed of this item for crafting");
+            req2APL = itemConfig("Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 3 */
-            req3Amount = itemConfig("SledgeIron", "Amount Required", 1, "Amount needed of this item for crafting");
-            req3APL = itemConfig("SledgeIron", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
+            req3Prefab = itemConfig("Item 3", "Required Prefab", "SledgeIron", "Required item for crafting");
+            req3Amount = itemConfig("Item 3", "Amount Required", 1, "Amount needed of this item for crafting");
+            req3APL = itemConfig("Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 4 */
-            req4Amount = itemConfig("DragonTear", "Amount Required", 3, "Amount needed of this item for crafting");
-            req4APL = itemConfig("DragonTear", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
+            req4Prefab = itemConfig("Item 4", "Required Prefab", "DragonTear", "Required item for crafting");
+            req4Amount = itemConfig("Item 4", "Amount Required", 3, "Amount needed of this item for crafting");
+            req4APL = itemConfig("Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
 
             localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
 
@@ -188,10 +197,10 @@ namespace Mjolnir
             {
                 ObjectDB.instance.m_recipes.Add(recipe);
             }
-            GameObject thing1 = ObjectDB.instance.GetItemPrefab("FineWood");
-            GameObject thing2 = ObjectDB.instance.GetItemPrefab("Stone");
-            GameObject thing3 = ObjectDB.instance.GetItemPrefab("SledgeIron");
-            GameObject thing4 = ObjectDB.instance.GetItemPrefab("DragonTear");
+            GameObject thing1 = ObjectDB.instance.GetItemPrefab(req1Prefab.Value);
+            GameObject thing2 = ObjectDB.instance.GetItemPrefab(req2Prefab.Value);
+            GameObject thing3 = ObjectDB.instance.GetItemPrefab(req3Prefab.Value);
+            GameObject thing4 = ObjectDB.instance.GetItemPrefab(req4Prefab.Value);
             recipe.name = "RecipeMjolnir";
             recipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
             recipe.m_repairStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();

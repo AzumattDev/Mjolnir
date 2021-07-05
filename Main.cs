@@ -96,6 +96,21 @@ namespace Mjolnir
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
             Localize();
         }
+
+        private void Update()
+        {
+            if (ConfigSync.ProcessingServerUpdate)
+            {
+                try
+                {
+                    Recipe();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed update for ConfigSync.ProcessingServerUpdate {ex}");
+                }
+            }
+        }
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
             if (zNetScene == null || zNetScene.m_prefabs == null || zNetScene.m_prefabs.Count <= 0)

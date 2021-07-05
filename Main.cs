@@ -43,6 +43,9 @@ namespace Mjolnir
         public static ConfigEntry<int> req3APL;
         public static ConfigEntry<int> req4APL;
 
+        public bool UpdateRecipe = false;
+        public static Recipe recipe;
+
         ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
         {
             ConfigEntry<T> configEntry = Config.Bind(group, name, value, description);
@@ -62,21 +65,29 @@ namespace Mjolnir
             serverConfigLocked = config("General", "Force Server Config", true, "Force Server Config");
             configSync.AddLockingConfigEntry(serverConfigLocked);
             nexusID = config("General", "NexusID", 1357, "Nexus mod ID for updates");
+            
+            ConfigEntry<T> itemConfig<T>(string item, string name, T value, string description)
+            {
+                ConfigEntry<T> configEntry = config("Recipe " + item, name, value, description, true);
+                configEntry.SettingChanged += (s, e) => UpdateRecipe = true;
+                return configEntry;
+            }
+
             /* Item 1 */
-            req1Amount = config("Recipe Item 1", "Amount Required", 30, "Amount needed of this item for crafting", true);
-            req1APL = config("Recipe Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+            req1Amount = itemConfig("FineWood", "Amount Required", 30, "Amount needed of this item for crafting");
+            req1APL = itemConfig("FineWood", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 2 */
-            req2Amount = config("Recipe Item 2", "Amount Required", 30, "Amount needed of this item for crafting", true);
-            req2APL = config("Recipe Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+            req2Amount = itemConfig("Stone", "Amount Required", 30, "Amount needed of this item for crafting");
+            req2APL = itemConfig("Stone", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 3 */
-            req3Amount = config("Recipe Item 3", "Amount Required", 1, "Amount needed of this item for crafting", true);
-            req3APL = config("Recipe Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+            req3Amount = itemConfig("SledgeIron", "Amount Required", 1, "Amount needed of this item for crafting");
+            req3APL = itemConfig("SledgeIron", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
 
             /* Item 4 */
-            req4Amount = config("Recipe Item 4", "Amount Required", 3, "Amount needed of this item for crafting", true);
-            req4APL = config("Recipe Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+            req4Amount = itemConfig("DragonTear", "Amount Required", 3, "Amount needed of this item for crafting");
+            req4APL = itemConfig("DragonTear", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item");
 
             localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
 
@@ -88,7 +99,7 @@ namespace Mjolnir
 
         private void Update()
         {
-            if (ConfigSync.ProcessingServerUpdate)
+            if (UpdateRecipe)
             {
                 Recipe();
             }
@@ -167,19 +178,23 @@ namespace Mjolnir
             {
                 Debug.LogError($"Error removing Mjolnir from ODB  :{ex}");
             }
+            if (recipe == null)
+            {
+                recipe = ScriptableObject.CreateInstance<Recipe>();
+                ObjectDB.instance.m_recipes.Add(recipe);
+            }
             GameObject thing1 = ObjectDB.instance.GetItemPrefab("FineWood");
             GameObject thing2 = ObjectDB.instance.GetItemPrefab("Stone");
             GameObject thing3 = ObjectDB.instance.GetItemPrefab("SledgeIron");
             GameObject thing4 = ObjectDB.instance.GetItemPrefab("DragonTear");
-            Recipe newRecipe = ScriptableObject.CreateInstance<Recipe>();
-            newRecipe.name = "RecipeMjolnir";
-            newRecipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
-            newRecipe.m_repairStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
-            newRecipe.m_amount = 1;
-            newRecipe.m_minStationLevel = 4;
-            newRecipe.m_item = mjolnir.GetComponent<ItemDrop>();
-            newRecipe.m_enabled = true;
-            newRecipe.m_resources = new Piece.Requirement[]
+            recipe.name = "RecipeMjolnir";
+            recipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
+            recipe.m_repairStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
+            recipe.m_amount = 1;
+            recipe.m_minStationLevel = 4;
+            recipe.m_item = mjolnir.GetComponent<ItemDrop>();
+            recipe.m_enabled = true;
+            recipe.m_resources = new Piece.Requirement[]
             {
                 new Piece.Requirement(){m_resItem = thing1.GetComponent<ItemDrop>(), m_amount = req1Amount.Value, m_amountPerLevel = req1APL.Value, m_recover = true},
                 new Piece.Requirement(){m_resItem = thing2.GetComponent<ItemDrop>(), m_amount = req2Amount.Value, m_amountPerLevel = req2APL.Value, m_recover = true},
@@ -194,7 +209,6 @@ namespace Mjolnir
             {
                 Debug.LogError($"Error adding Mjolnir to ODB  :{ex}");
             }
-            ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
 

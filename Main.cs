@@ -60,35 +60,38 @@ namespace Mjolnir
         private void Awake()
         {
             serverConfigLocked = config("General", "Force Server Config", true, "Force Server Config");
-            configSync.AddLockingConfigEntry<bool>(serverConfigLocked);
-            nexusID = config<int>("General", "NexusID", 1357, "Nexus mod ID for updates");
+            configSync.AddLockingConfigEntry(serverConfigLocked);
+            nexusID = config("General", "NexusID", 1357, "Nexus mod ID for updates");
             /* Item 1 */
-            req1Amount = config<int>("Recipe Item 1", "Amount Required", 30, "Amount needed of this item for crafting", true);
-            req1APL = config<int>("Recipe Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+            req1Amount = config("Recipe Item 1", "Amount Required", 30, "Amount needed of this item for crafting", true);
+            req1APL = config("Recipe Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 2 */
-            req2Amount = config<int>("Recipe Item 2", "Amount Required", 30, "Amount needed of this item for crafting", true);
-            req2APL = config<int>("Recipe Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+            req2Amount = config("Recipe Item 2", "Amount Required", 30, "Amount needed of this item for crafting", true);
+            req2APL = config("Recipe Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 3 */
-            req3Amount = config<int>("Recipe Item 3", "Amount Required", 1, "Amount needed of this item for crafting", true);
-            req3APL = config<int>("Recipe Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+            req3Amount = config("Recipe Item 3", "Amount Required", 1, "Amount needed of this item for crafting", true);
+            req3APL = config("Recipe Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 4 */
-            req4Amount = config<int>("Recipe Item 4", "Amount Required", 3, "Amount needed of this item for crafting", true);
-            req4APL = config<int>("Recipe Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+            req4Amount = config("Recipe Item 4", "Amount Required", 3, "Amount needed of this item for crafting", true);
+            req4APL = config("Recipe Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
 
             m_localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
+
             LoadAssets();
 
+            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
+            Localize();
+        }
+
+        private void Update()
+        {
             if (ConfigSync.ProcessingServerUpdate)
             {
                 Recipe();
             }
-
-
-            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
-            Localize();
         }
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
@@ -177,13 +180,12 @@ namespace Mjolnir
                 new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = req4Amount.Value, m_amountPerLevel = req4APL.Value, m_recover = true}
             };
             db.Add(mjolnir);
-            //Mjolnir.LogInfo("Loaded mjolnir Recipe");
             ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
 
         [HarmonyPatch(typeof(ZNetScene), "Awake")]
-        public static class ZNetScene_Awake_Patch
+        public static class MJOLZNetScene_Awake_Patch
         {
             public static bool Prefix(ZNetScene __instance)
             {
@@ -193,7 +195,7 @@ namespace Mjolnir
         }
 
         [HarmonyPatch(typeof(ObjectDB), "Awake")]
-        public static class ObjectDB_Awake_Patch
+        public static class MJOLObjectDB_Awake_Patch
         {
             public static void Postfix()
             {
@@ -202,7 +204,7 @@ namespace Mjolnir
             }
         }
         [HarmonyPatch(typeof(ObjectDB), "CopyOtherDB")]
-        public static class ObjectDB_CopyOtherDB_Patch
+        public static class MJOLObjectDB_CopyOtherDB_Patch
         {
             public static void Postfix()
             {
@@ -210,6 +212,7 @@ namespace Mjolnir
                 AddSomeRecipes();
             }
         }
+
         private void OnDestroy()
         {
             m_localizationFile.Save();
@@ -235,21 +238,6 @@ namespace Mjolnir
             }
 
             return $"${key}";
-        }
-
-        internal static void LogInfo(object o, LogLevel level = LogLevel.Info)
-        {
-            Instance.Logger.Log(level, o);
-        }
-
-        internal static void LogWarning(object o)
-        {
-            Instance.Logger.LogWarning(o);
-        }
-
-        internal static void LogError(object o)
-        {
-            Instance.Logger.LogError(o);
         }
     }
 }

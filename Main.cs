@@ -176,15 +176,15 @@ namespace Mjolnir
         public static void Recipe()
         {
 
-            //var db = ObjectDB.instance.m_items;
-            //try
-            //{
-            //    db.Remove(mjolnir);
-            //}
-            //catch (Exception ex)
-            //{
-            //    Debug.LogError($"Error removing Mjolnir from ODB  :{ex}");
-            //}
+            var db = ObjectDB.instance.m_items;
+            try
+            {
+                db.Remove(mjolnir);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error removing Mjolnir from ODB  :{ex}");
+            }
             GameObject thing1 = ObjectDB.instance.GetItemPrefab(req1Prefab.Value);
             GameObject thing2 = ObjectDB.instance.GetItemPrefab(req2Prefab.Value);
             GameObject thing3 = ObjectDB.instance.GetItemPrefab(req3Prefab.Value);
@@ -204,15 +204,16 @@ namespace Mjolnir
                 new Piece.Requirement(){m_resItem = thing3.GetComponent<ItemDrop>(), m_amount = req3Amount.Value, m_amountPerLevel = req3APL.Value, m_recover = true},
                 new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = req4Amount.Value, m_amountPerLevel = req4APL.Value, m_recover = true}
             };
-            //try
-            //{
-            //    db.Add(mjolnir);
-            //}
-            //catch (Exception ex)
-            //{
-            //    Debug.LogError($"Error adding Mjolnir to ODB  :{ex}");
-            //}
-            ObjectDB.instance.m_recipes.Add(newRecipe);
+            try
+            {
+                db.Add(mjolnir);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error adding Mjolnir to ODB  :{ex}");
+            }
+            if (!ObjectDB.instance.m_recipes.Contains(newRecipe))
+                ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
 
@@ -262,6 +263,25 @@ namespace Mjolnir
                 }
             }
         }
+
+        [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
+        [HarmonyPriority(Priority.Last)]
+        static class MJOLZNet_OnNewConnection_PostPatch
+        {
+            static void Postfix()
+            {
+                try
+                {
+                    context.StartCoroutine(DelayedLoadRecipes());
+                    LoadAllRecipeData();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"{ex}");
+                }
+            }
+        }
+
         public static IEnumerator DelayedLoadRecipes()
         {
             yield return null;

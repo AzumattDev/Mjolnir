@@ -93,12 +93,6 @@ namespace Mjolnir
 
             LoadAssets();
 
-            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
-            Localize();
-        }
-
-        private void Update()
-        {
             if (ConfigSync.ProcessingServerUpdate)
             {
                 try
@@ -110,7 +104,11 @@ namespace Mjolnir
                     Debug.LogError($"Failed update for ConfigSync.ProcessingServerUpdate {ex}");
                 }
             }
+
+            _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
+            Localize();
         }
+
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
             if (zNetScene == null || zNetScene.m_prefabs == null || zNetScene.m_prefabs.Count <= 0)
@@ -157,13 +155,14 @@ namespace Mjolnir
 
         public static void AddSomeRecipes()
         {
+            if (ObjectDB.instance.m_recipes.Count() == 0)
+            {
+                //Mjolnir.LogInfo("Recipe database not ready for stuff, skipping initialization.");
+                return;
+            }
+
             try
             {
-                if (ObjectDB.instance.m_recipes.Count() == 0)
-                {
-                    //Mjolnir.LogInfo("Recipe database not ready for stuff, skipping initialization.");
-                    return;
-                }
                 Recipe();
 
                 ObjectDB.instance.UpdateItemHashes();
@@ -246,41 +245,41 @@ namespace Mjolnir
             }
         }
 
-        [HarmonyPatch(typeof(ZNetScene), "Awake")]
-        [HarmonyPriority(Priority.Last)]
-        static class MJOLZNetScene_Awake_PostPatch
-        {
-            static void Postfix()
-            {
-                try
-                {
-                    context.StartCoroutine(DelayedLoadRecipes());
-                    LoadAllRecipeData();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"{ex}");
-                }
-            }
-        }
+        //[HarmonyPatch(typeof(ZNetScene), "Awake")]
+        //[HarmonyPriority(Priority.Last)]
+        //static class MJOLZNetScene_Awake_PostPatch
+        //{
+        //    static void Postfix()
+        //    {
+        //        try
+        //        {
+        //            context.StartCoroutine(DelayedLoadRecipes());
+        //            LoadAllRecipeData();
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Debug.LogError($"{ex}");
+        //        }
+        //    }
+        //}
 
-        [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
-        [HarmonyPriority(Priority.Last)]
-        static class MJOLZNet_OnNewConnection_PostPatch
-        {
-            static void Postfix()
-            {
-                try
-                {
-                    context.StartCoroutine(DelayedLoadRecipes());
-                    LoadAllRecipeData();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"{ex}");
-                }
-            }
-        }
+        //[HarmonyPatch(typeof(ZNet), "OnNewConnection")]
+        //[HarmonyPriority(Priority.Last)]
+        //static class MJOLZNet_OnNewConnection_PostPatch
+        //{
+        //    static void Postfix()
+        //    {
+        //        try
+        //        {
+        //            context.StartCoroutine(DelayedLoadRecipes());
+        //            LoadAllRecipeData();
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Debug.LogError($"{ex}");
+        //        }
+        //    }
+        //}
 
         public static IEnumerator DelayedLoadRecipes()
         {

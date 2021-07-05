@@ -103,7 +103,7 @@ namespace Mjolnir
             {
                 try
                 {
-                    Recipe();
+                    LoadAllRecipeData()
                 }
                 catch (Exception ex)
                 {

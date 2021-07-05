@@ -245,41 +245,41 @@ namespace Mjolnir
             }
         }
 
-        //[HarmonyPatch(typeof(ZNetScene), "Awake")]
-        //[HarmonyPriority(Priority.Last)]
-        //static class MJOLZNetScene_Awake_PostPatch
-        //{
-        //    static void Postfix()
-        //    {
-        //        try
-        //        {
-        //            context.StartCoroutine(DelayedLoadRecipes());
-        //            LoadAllRecipeData();
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            Debug.LogError($"{ex}");
-        //        }
-        //    }
-        //}
+        [HarmonyPatch(typeof(ZNetScene), "Awake")]
+        [HarmonyPriority(Priority.Last)]
+        static class MJOLZNetScene_Awake_PostPatch
+        {
+            static void Postfix()
+            {
+                try
+                {
+                    context.StartCoroutine(DelayedLoadRecipes());
+                    LoadAllRecipeData();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"{ex}");
+                }
+            }
+        }
 
-        //[HarmonyPatch(typeof(ZNet), "OnNewConnection")]
-        //[HarmonyPriority(Priority.Last)]
-        //static class MJOLZNet_OnNewConnection_PostPatch
-        //{
-        //    static void Postfix()
-        //    {
-        //        try
-        //        {
-        //            context.StartCoroutine(DelayedLoadRecipes());
-        //            LoadAllRecipeData();
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            Debug.LogError($"{ex}");
-        //        }
-        //    }
-        //}
+        [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
+        [HarmonyPriority(Priority.Last)]
+        static class MJOLZNet_OnNewConnection_PostPatch
+        {
+            static void Postfix()
+            {
+                try
+                {
+                    context.StartCoroutine(DelayedLoadRecipes());
+                    LoadAllRecipeData();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"{ex}");
+                }
+            }
+        }
 
         public static IEnumerator DelayedLoadRecipes()
         {
@@ -300,12 +300,11 @@ namespace Mjolnir
             {
                 if (ObjectDB.instance.m_recipes[i].m_item?.m_itemData.m_shared.m_name == mjolnir.GetComponent<ItemDrop>().m_itemData.m_shared.m_name)
                 {
-                    if (!mjolnir.gameObject.activeSelf)
-                    {
-                        Debug.LogError($"Removing recipe for {mjolnir.name} from the game");
-                        ObjectDB.instance.m_recipes.RemoveAt(i);
-                        return;
-                    }
+                    Debug.LogError($"Removing recipe for {mjolnir.name} from the game");
+                    /* Going to try force removing...then adding back */
+                    ObjectDB.instance.m_recipes.RemoveAt(i);
+
+
 
                     ObjectDB.instance.m_recipes[i].m_amount = 1;
                     ObjectDB.instance.m_recipes[i].m_minStationLevel = 4;

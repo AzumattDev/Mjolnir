@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using System.IO;
+using ServerSync;
 
 namespace Mjolnir
 {
@@ -15,21 +16,76 @@ namespace Mjolnir
     [BepInPlugin(PluginId, "Mjolnir", version)]
     public class Mjolnir : BaseUnityPlugin
     {
+        public const string version = "1.0.0";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
-        public const string Version = "0.1.2";
+        ConfigSync configSync = new ConfigSync(PluginId) { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
+        public static Mjolnir Instance { get; private set; }
         private Harmony _harmony;
         private static GameObject mjolnir;
-        public static ManualLogSource logSource;
         private ConfigFile m_localizationFile;
         private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
-        public const string version = "1.0.0";
+
+        #region Configs
+        public static ConfigEntry<bool> serverConfigLocked;
+        public static ConfigEntry<int> nexusID;
+
+        public static ConfigEntry<int> reqm_minStationLevel;
+
+        public static ConfigEntry<int> req1Amount;
+        public static ConfigEntry<int> req2Amount;
+        public static ConfigEntry<int> req3Amount;
+        public static ConfigEntry<int> req4Amount;
+
+        public static ConfigEntry<int> req1APL;
+        public static ConfigEntry<int> req2APL;
+        public static ConfigEntry<int> req3APL;
+        public static ConfigEntry<int> req4APL;
+
+        ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
+        {
+            ConfigEntry<T> configEntry = Config.Bind(group, name, value, description);
+
+            SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
+            syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+
+            return configEntry;
+        }
+
+        ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
+
+        #endregion
 
         private void Awake()
         {
+            serverConfigLocked = config("General", "Force Server Config", true, "Force Server Config");
+            configSync.AddLockingConfigEntry<bool>(serverConfigLocked);
+            nexusID = config<int>("General", "NexusID", 1357, "Nexus mod ID for updates");
+            /* Item 1 */
+            req1Amount = config<int>("Recipe Item 1", "Amount Required", 30, "Amount needed of this item for crafting", true);
+            req1APL = config<int>("Recipe Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+
+            /* Item 2 */
+            req2Amount = config<int>("Recipe Item 2", "Amount Required", 30, "Amount needed of this item for crafting", true);
+            req2APL = config<int>("Recipe Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
+
+            /* Item 3 */
+            req3Amount = config<int>("Recipe Item 3", "Amount Required", 1, "Amount needed of this item for crafting", true);
+            req3APL = config<int>("Recipe Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+
+            /* Item 4 */
+            req4Amount = config<int>("Recipe Item 4", "Amount Required", 3, "Amount needed of this item for crafting", true);
+            req4APL = config<int>("Recipe Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
+
             m_localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
             LoadAssets();
+
+            if (ConfigSync.ProcessingServerUpdate)
+            {
+                Recipe();
+            }
+
 
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
             Localize();
@@ -84,7 +140,7 @@ namespace Mjolnir
             {
                 if (ObjectDB.instance.m_recipes.Count() == 0)
                 {
-                    //logSource.LogInfo("Recipe database not ready for stuff, skipping initialization.");
+                    //Mjolnir.LogInfo("Recipe database not ready for stuff, skipping initialization.");
                     return;
                 }
                 Recipe();
@@ -98,25 +154,30 @@ namespace Mjolnir
         }
         public static void Recipe()
         {
+
+            var db = ObjectDB.instance.m_items;
+            db.Remove(mjolnir);
             GameObject thing1 = ObjectDB.instance.GetItemPrefab("FineWood");
             GameObject thing2 = ObjectDB.instance.GetItemPrefab("Stone");
             GameObject thing3 = ObjectDB.instance.GetItemPrefab("SledgeIron");
             GameObject thing4 = ObjectDB.instance.GetItemPrefab("DragonTear");
             Recipe newRecipe = ScriptableObject.CreateInstance<Recipe>();
             newRecipe.name = "RecipeMjolnir";
-            newRecipe.m_craftingStation = ObjectDB.instance.GetItemPrefab("forge").GetComponentInChildren<CraftingStation>(true);
-            newRecipe.m_repairStation = ObjectDB.instance.GetItemPrefab("forge").GetComponentInChildren<CraftingStation>(true);
+            newRecipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
+            newRecipe.m_repairStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
             newRecipe.m_amount = 1;
-            newRecipe.m_minStationLevel = 1;
+            newRecipe.m_minStationLevel = 4;
             newRecipe.m_item = mjolnir.GetComponent<ItemDrop>();
             newRecipe.m_enabled = true;
-            newRecipe.m_resources = new Piece.Requirement[]{
-                new Piece.Requirement(){m_resItem = thing1.GetComponent<ItemDrop>(), m_amount = 30, m_amountPerLevel =10, m_recover = true},
-                new Piece.Requirement(){m_resItem = thing2.GetComponent<ItemDrop>(), m_amount =30, m_amountPerLevel = 10, m_recover = true},
-                new Piece.Requirement(){m_resItem = thing3.GetComponent<ItemDrop>(), m_amount = 1, m_amountPerLevel = 1, m_recover = true},
-                new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = 3, m_amountPerLevel = 1, m_recover = true}
+            newRecipe.m_resources = new Piece.Requirement[]
+            {
+                new Piece.Requirement(){m_resItem = thing1.GetComponent<ItemDrop>(), m_amount = req1Amount.Value, m_amountPerLevel = req1APL.Value, m_recover = true},
+                new Piece.Requirement(){m_resItem = thing2.GetComponent<ItemDrop>(), m_amount = req2Amount.Value, m_amountPerLevel = req2APL.Value, m_recover = true},
+                new Piece.Requirement(){m_resItem = thing3.GetComponent<ItemDrop>(), m_amount = req3Amount.Value, m_amountPerLevel = req3APL.Value, m_recover = true},
+                new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = req4Amount.Value, m_amountPerLevel = req4APL.Value, m_recover = true}
             };
-            //logSource.LogInfo("Loaded mjolnir Recipe");
+            db.Add(mjolnir);
+            //Mjolnir.LogInfo("Loaded mjolnir Recipe");
             ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
@@ -127,7 +188,6 @@ namespace Mjolnir
             public static bool Prefix(ZNetScene __instance)
             {
                 TryRegisterFabs(__instance);
-                //logSource.LogInfo("Loading the prefabs");
                 return true;
             }
         }
@@ -137,7 +197,6 @@ namespace Mjolnir
         {
             public static void Postfix()
             {
-                //logSource.LogInfo("Trying to register Items");
                 RegisterItems();
                 AddSomeRecipes();
             }
@@ -161,6 +220,7 @@ namespace Mjolnir
         {
             LocalizeWord("item_mjolnir", "Mjölnir");
             LocalizeWord("item_mjolnir_description", "The powerful hammer of the Thunder God Thor");
+
         }
 
         public string LocalizeWord(string key, string val)
@@ -175,6 +235,21 @@ namespace Mjolnir
             }
 
             return $"${key}";
+        }
+
+        internal static void LogInfo(object o, LogLevel level = LogLevel.Info)
+        {
+            Instance.Logger.Log(level, o);
+        }
+
+        internal static void LogWarning(object o)
+        {
+            Instance.Logger.LogWarning(o);
+        }
+
+        internal static void LogError(object o)
+        {
+            Instance.Logger.LogError(o);
         }
     }
 }

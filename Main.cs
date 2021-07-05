@@ -4,6 +4,7 @@ using System;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -20,11 +21,12 @@ namespace Mjolnir
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
+        private static Mjolnir context;
         ConfigSync configSync = new ConfigSync(PluginId) { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
         public static Mjolnir Instance { get; private set; }
         private Harmony _harmony;
         private static GameObject mjolnir;
-        private ConfigFile m_localizationFile;
+        private ConfigFile localizationFile;
         private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
 
         #region Configs
@@ -32,6 +34,11 @@ namespace Mjolnir
         public static ConfigEntry<int> nexusID;
 
         public static ConfigEntry<int> reqm_minStationLevel;
+
+        public static ConfigEntry<string> req1Prefab;
+        public static ConfigEntry<string> req2Prefab;
+        public static ConfigEntry<string> req3Prefab;
+        public static ConfigEntry<string> req4Prefab;
 
         public static ConfigEntry<int> req1Amount;
         public static ConfigEntry<int> req2Amount;
@@ -63,35 +70,31 @@ namespace Mjolnir
             configSync.AddLockingConfigEntry(serverConfigLocked);
             nexusID = config("General", "NexusID", 1357, "Nexus mod ID for updates");
             /* Item 1 */
+            req1Prefab = config("Recipe Item 1", "Prefab", "FineWood", "Item you want required to craft", true);
             req1Amount = config("Recipe Item 1", "Amount Required", 30, "Amount needed of this item for crafting", true);
             req1APL = config("Recipe Item 1", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 2 */
+            req2Prefab = config("Recipe Item 2", "Prefab", "Stone", "Item you want required to craft", true);
             req2Amount = config("Recipe Item 2", "Amount Required", 30, "Amount needed of this item for crafting", true);
             req2APL = config("Recipe Item 2", "Amount Per Level", 10, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 3 */
+            req3Prefab = config("Recipe Item 3", "Prefab", "SledgeIron", "Item you want required to craft", true);
             req3Amount = config("Recipe Item 3", "Amount Required", 1, "Amount needed of this item for crafting", true);
             req3APL = config("Recipe Item 3", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
 
             /* Item 4 */
+            req4Prefab = config("Recipe Item 4", "Prefab", "DragonTear", "Item you want required to craft", true);
             req4Amount = config("Recipe Item 4", "Amount Required", 3, "Amount needed of this item for crafting", true);
             req4APL = config("Recipe Item 4", "Amount Per Level", 1, "Amount to increase crafting cost by for each level of the item", true);
 
-            m_localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
+            localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
 
             LoadAssets();
 
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
             Localize();
-        }
-
-        private void Update()
-        {
-            if (ConfigSync.ProcessingServerUpdate)
-            {
-                Recipe();
-            }
         }
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
@@ -158,12 +161,19 @@ namespace Mjolnir
         public static void Recipe()
         {
 
-            var db = ObjectDB.instance.m_items;
-            db.Remove(mjolnir);
-            GameObject thing1 = ObjectDB.instance.GetItemPrefab("FineWood");
-            GameObject thing2 = ObjectDB.instance.GetItemPrefab("Stone");
-            GameObject thing3 = ObjectDB.instance.GetItemPrefab("SledgeIron");
-            GameObject thing4 = ObjectDB.instance.GetItemPrefab("DragonTear");
+            //var db = ObjectDB.instance.m_items;
+            //try
+            //{
+            //    db.Remove(mjolnir);
+            //}
+            //catch (Exception ex)
+            //{
+            //    Debug.LogError($"Error removing Mjolnir from ODB  :{ex}");
+            //}
+            GameObject thing1 = ObjectDB.instance.GetItemPrefab(req1Prefab.Value);
+            GameObject thing2 = ObjectDB.instance.GetItemPrefab(req2Prefab.Value);
+            GameObject thing3 = ObjectDB.instance.GetItemPrefab(req3Prefab.Value);
+            GameObject thing4 = ObjectDB.instance.GetItemPrefab(req4Prefab.Value);
             Recipe newRecipe = ScriptableObject.CreateInstance<Recipe>();
             newRecipe.name = "RecipeMjolnir";
             newRecipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
@@ -179,7 +189,14 @@ namespace Mjolnir
                 new Piece.Requirement(){m_resItem = thing3.GetComponent<ItemDrop>(), m_amount = req3Amount.Value, m_amountPerLevel = req3APL.Value, m_recover = true},
                 new Piece.Requirement(){m_resItem = thing4.GetComponent<ItemDrop>(), m_amount = req4Amount.Value, m_amountPerLevel = req4APL.Value, m_recover = true}
             };
-            db.Add(mjolnir);
+            //try
+            //{
+            //    db.Add(mjolnir);
+            //}
+            //catch (Exception ex)
+            //{
+            //    Debug.LogError($"Error adding Mjolnir to ODB  :{ex}");
+            //}
             ObjectDB.instance.m_recipes.Add(newRecipe);
         }
 
@@ -213,9 +230,69 @@ namespace Mjolnir
             }
         }
 
+        [HarmonyPatch(typeof(ZNetScene), "Awake")]
+        [HarmonyPriority(Priority.Last)]
+        static class MJOLZNetScene_Awake_PostPatch
+        {
+            static void Postfix()
+            {
+                try
+                {
+                    context.StartCoroutine(DelayedLoadRecipes());
+                    LoadAllRecipeData();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"{ex}");
+                }
+            }
+        }
+        public static IEnumerator DelayedLoadRecipes()
+        {
+            yield return null;
+            LoadAllRecipeData();
+            yield break;
+        }
+
+        private static void LoadAllRecipeData()
+        {
+            GameObject go = ObjectDB.instance.GetItemPrefab("Mjolnir");
+            if (go.GetComponent<ItemDrop>() == null)
+            {
+                Debug.LogError($"Item data for {go.name} not found!");
+                return;
+            }
+
+            for (int i = ObjectDB.instance.m_recipes.Count - 1; i > 0; i--)
+            {
+                if (ObjectDB.instance.m_recipes[i].m_item?.m_itemData.m_shared.m_name == go.GetComponent<ItemDrop>().m_itemData.m_shared.m_name)
+                {
+                    if (!go.gameObject.activeSelf)
+                    {
+                        Debug.LogError($"Removing recipe for {go.name} from the game");
+                        ObjectDB.instance.m_recipes.RemoveAt(i);
+                        return;
+                    }
+
+                    ObjectDB.instance.m_recipes[i].m_amount = 1;
+                    ObjectDB.instance.m_recipes[i].m_minStationLevel = 4;
+                    ObjectDB.instance.m_recipes[i].m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
+                    List<Piece.Requirement> reqs = new List<Piece.Requirement>();
+
+                    reqs.Add(new Piece.Requirement() { m_resItem = ObjectDB.instance.GetItemPrefab(req1Prefab.Value).GetComponent<ItemDrop>(), m_amount = req1Amount.Value, m_amountPerLevel = req1APL.Value, m_recover = true });
+                    reqs.Add(new Piece.Requirement() { m_resItem = ObjectDB.instance.GetItemPrefab(req2Prefab.Value).GetComponent<ItemDrop>(), m_amount = req2Amount.Value, m_amountPerLevel = req2APL.Value, m_recover = true });
+                    reqs.Add(new Piece.Requirement() { m_resItem = ObjectDB.instance.GetItemPrefab(req3Prefab.Value).GetComponent<ItemDrop>(), m_amount = req3Amount.Value, m_amountPerLevel = req3APL.Value, m_recover = true });
+                    reqs.Add(new Piece.Requirement() { m_resItem = ObjectDB.instance.GetItemPrefab(req4Prefab.Value).GetComponent<ItemDrop>(), m_amount = req4Amount.Value, m_amountPerLevel = req4APL.Value, m_recover = true });
+
+                    ObjectDB.instance.m_recipes[i].m_resources = reqs.ToArray();
+                    return;
+                }
+            }
+        }
+
         private void OnDestroy()
         {
-            m_localizationFile.Save();
+            localizationFile.Save();
             _harmony?.UnpatchSelf();
         }
 
@@ -232,7 +309,7 @@ namespace Mjolnir
             {
                 var loc = Localization.instance;
                 var langSection = loc.GetSelectedLanguage();
-                var configEntry = m_localizationFile.Bind(langSection, key, val);
+                var configEntry = localizationFile.Bind(langSection, key, val);
                 Localization.instance.AddWord(key, configEntry.Value);
                 m_localizedStrings.Add(key, configEntry);
             }

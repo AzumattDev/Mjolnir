@@ -21,6 +21,7 @@ namespace Mjolnir
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
+        public static bool shouldUpdateRecipes = false;
         private static Mjolnir context;
         ConfigSync configSync = new ConfigSync(PluginId) { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
         public static Mjolnir Instance { get; private set; }
@@ -107,6 +108,16 @@ namespace Mjolnir
 
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
             Localize();
+        }
+        private void Update()
+        {
+            req1Amount.SettingChanged += Req1Amount_SettingChanged; shouldUpdateRecipes = true;
+
+        }
+
+        private void Req1Amount_SettingChanged(object sender, EventArgs e)
+        {
+            Recipe();
         }
 
         public static void TryRegisterFabs(ZNetScene zNetScene)
@@ -249,12 +260,11 @@ namespace Mjolnir
         [HarmonyPriority(Priority.Last)]
         static class MJOLZNetScene_Awake_PostPatch
         {
-            static void Postfix()
+            static void Postfix(ZNetScene __instance)
             {
                 try
                 {
-                    context.StartCoroutine(DelayedLoadRecipes());
-                    LoadAllRecipeData();
+                    shouldUpdateRecipes = true;
                 }
                 catch (Exception ex)
                 {
@@ -271,8 +281,7 @@ namespace Mjolnir
             {
                 try
                 {
-                    context.StartCoroutine(DelayedLoadRecipes());
-                    LoadAllRecipeData();
+                    shouldUpdateRecipes = true;
                 }
                 catch (Exception ex)
                 {

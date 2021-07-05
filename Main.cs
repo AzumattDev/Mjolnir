@@ -57,15 +57,17 @@ namespace Mjolnir
         }
 
         ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true) => config(group, name, value, new ConfigDescription(description), synchronizedSetting);
-
+        private class ConfigurationManagerAttributes
+        {
+            public bool? Browsable = false;
+        }
         #endregion
 
         private void Awake()
         {
             serverConfigLocked = config("General", "Force Server Config", true, "Force Server Config");
             configSync.AddLockingConfigEntry(serverConfigLocked);
-            nexusID = config("General", "NexusID", 1357, "Nexus mod ID for updates");
-            
+            nexusID = config("General", "NexusID", 1357, new ConfigDescription("Nexus mod ID for updates", null, new ConfigurationManagerAttributes()), false);
             ConfigEntry<T> itemConfig<T>(string item, string name, T value, string description)
             {
                 ConfigEntry<T> configEntry = config("Recipe " + item, name, value, description, true);

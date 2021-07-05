@@ -271,20 +271,19 @@ namespace Mjolnir
 
         private static void LoadAllRecipeData()
         {
-            GameObject go = ObjectDB.instance.GetItemPrefab("Mjolnir");
-            if (go.GetComponent<ItemDrop>() == null)
+            if (mjolnir.GetComponent<ItemDrop>() == null)
             {
-                Debug.LogError($"Item data for {go.name} not found!");
+                Debug.LogError($"Item data for {mjolnir.name} not found!");
                 return;
             }
-
-            for (int i = ObjectDB.instance.m_recipes.Count - 1; i > 0; i--)
+            //for (int i = ObjectDB.instance.m_recipes.Count - 1; i > 0; i--)
+            for (int i = 0; i < ObjectDB.instance.m_recipes.Count; i++)
             {
-                if (ObjectDB.instance.m_recipes[i].m_item?.m_itemData.m_shared.m_name == go.GetComponent<ItemDrop>().m_itemData.m_shared.m_name)
+                if (ObjectDB.instance.m_recipes[i].m_item?.m_itemData.m_shared.m_name == mjolnir.GetComponent<ItemDrop>().m_itemData.m_shared.m_name)
                 {
-                    if (!go.gameObject.activeSelf)
+                    if (!mjolnir.gameObject.activeSelf)
                     {
-                        Debug.LogError($"Removing recipe for {go.name} from the game");
+                        Debug.LogError($"Removing recipe for {mjolnir.name} from the game");
                         ObjectDB.instance.m_recipes.RemoveAt(i);
                         return;
                     }

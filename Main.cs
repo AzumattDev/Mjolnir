@@ -237,7 +237,7 @@ namespace Mjolnir
         private void Localize()
         {
             LocalizeWord("item_mjolnir", "Mjölnir");
-            LocalizeWord("item_mjolnir_description", "The powerful hammer of the Thunder God Thor");
+            LocalizeWord("item_mjolnir_description", "Whosoever holds this hammer, if he be worthy, shall possess the power of Thor.");
 
         }
 

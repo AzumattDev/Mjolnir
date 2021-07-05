@@ -183,6 +183,9 @@ namespace Mjolnir
             if (recipe == null)
             {
                 recipe = ScriptableObject.CreateInstance<Recipe>();
+            }
+            if (!ObjectDB.instance.m_recipes.Contains(recipe))
+            {
                 ObjectDB.instance.m_recipes.Add(recipe);
             }
             GameObject thing1 = ObjectDB.instance.GetItemPrefab("FineWood");

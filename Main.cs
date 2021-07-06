@@ -1,7 +1,6 @@
 ﻿using BepInEx;
 using HarmonyLib;
 using System;
-using BepInEx.Logging;
 using BepInEx.Configuration;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +15,7 @@ namespace Mjolnir
     [BepInPlugin(PluginId, "Mjolnir", version)]
     public class Mjolnir : BaseUnityPlugin
     {
-        public const string version = "1.0.1";
+        public const string version = "1.0.2";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
@@ -84,6 +83,7 @@ namespace Mjolnir
 
             /* No-Craft */
             noCraft = config<bool>("General", "Not Craftable", false, "Makes the Mjolnir non-craftable, ignoring all settings below", true);
+
             /* Item 1 */
             req1Prefab = itemConfig("Item 1", "Required Prefab", "FineWood", "Required item for crafting");
             req1Amount = itemConfig("Item 1", "Amount Required", 30, "Amount needed of this item for crafting");

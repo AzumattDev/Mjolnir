@@ -31,6 +31,8 @@ namespace Mjolnir
         public static ConfigEntry<bool> serverConfigLocked;
         public static ConfigEntry<int> nexusID;
 
+        public static ConfigEntry<bool> noCraft;
+
         public static ConfigEntry<int> reqm_minStationLevel;
 
         public static ConfigEntry<string> req1Prefab;
@@ -80,6 +82,8 @@ namespace Mjolnir
                 return configEntry;
             }
 
+            /* No-Craft */
+            noCraft = config<bool>("General", "Not Craftable", false, "Makes the Mjolnir non-craftable, ignoring all settings below", true);
             /* Item 1 */
             req1Prefab = itemConfig("Item 1", "Required Prefab", "FineWood", "Required item for crafting");
             req1Amount = itemConfig("Item 1", "Amount Required", 30, "Amount needed of this item for crafting");
@@ -110,9 +114,17 @@ namespace Mjolnir
 
         private void Update()
         {
-            if (UpdateRecipe)
+            if (UpdateRecipe && !noCraft.Value)
             {
                 Recipe();
+            }
+            if (ObjectDB.instance.m_recipes.Contains(recipe) && noCraft.Value)
+            {
+                ObjectDB.instance.m_recipes.Remove(recipe);
+            }
+            else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
+            {
+                ObjectDB.instance.m_recipes.Add(recipe);
             }
         }
         public static void TryRegisterFabs(ZNetScene zNetScene)
@@ -179,7 +191,6 @@ namespace Mjolnir
         }
         public static void Recipe()
         {
-
             var db = ObjectDB.instance.m_items;
             try
             {
@@ -254,6 +265,22 @@ namespace Mjolnir
                 AddSomeRecipes();
             }
         }
+
+        //[HarmonyPatch(typeof(Game), nameof(Game._RequestRespawn))]
+        //public static class MJOL_RequestRespawn_Patch
+        //{
+        //    public static void Prefix(Game __instance)
+        //    {
+        //        if (ObjectDB.instance.m_recipes.Contains(recipe) && noCraft.Value)
+        //        {
+        //            ObjectDB.instance.m_recipes.Remove(recipe);
+        //        }
+        //        else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
+        //        {
+        //            ObjectDB.instance.m_recipes.Add(recipe);
+        //        }
+        //    }
+        //}
 
 
         private void OnDestroy()

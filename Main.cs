@@ -266,22 +266,6 @@ namespace Mjolnir
             }
         }
 
-        //[HarmonyPatch(typeof(Game), nameof(Game._RequestRespawn))]
-        //public static class MJOL_RequestRespawn_Patch
-        //{
-        //    public static void Prefix(Game __instance)
-        //    {
-        //        if (ObjectDB.instance.m_recipes.Contains(recipe) && noCraft.Value)
-        //        {
-        //            ObjectDB.instance.m_recipes.Remove(recipe);
-        //        }
-        //        else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
-        //        {
-        //            ObjectDB.instance.m_recipes.Add(recipe);
-        //        }
-        //    }
-        //}
-
 
         private void OnDestroy()
         {

@@ -36,6 +36,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="FlyAnimations.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -271,6 +272,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="EmbeddedAsset\mjolnir" />
+    <EmbeddedResource Include="EmbeddedAsset\azumattanimations" />
     <None Include="ILRepack.targets" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -283,4 +285,11 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\ILRepack.Lib.MSBuild.Task.2.0.18.2\build\ILRepack.Lib.MSBuild.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\ILRepack.Lib.MSBuild.Task.2.0.18.2\build\ILRepack.Lib.MSBuild.Task.targets'))" />
   </Target>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(TargetDir)Mjolnir.dll" "C:\Users\crypt\OneDrive\Desktop\ClientTesting\BepInEx\plugins\a\Mjolnir.dll"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

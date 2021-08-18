@@ -12,9 +12,9 @@ using UnityEngine;
 namespace Mjolnir
 {
     [BepInPlugin(PluginId, "Mjolnir", version)]
-    public class Mjolnir : BaseUnityPlugin
+    public partial class Mjolnir : BaseUnityPlugin
     {
-        public const string version = "1.0.2";
+        public const string version = "1.1.0";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
@@ -111,6 +111,7 @@ namespace Mjolnir
 
             _harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly(), PluginId);
             Localize();
+            AnimationAwake();
         }
 
         private void Update()
@@ -121,6 +122,20 @@ namespace Mjolnir
                 ObjectDB.instance.m_recipes.Remove(recipe);
             else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
                 ObjectDB.instance.m_recipes.Add(recipe);
+
+            if (!Input.GetKeyDown(KeyCode.Z)) return;
+            if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir") return;
+            if (Player.m_localPlayer.m_debugFly)
+            {
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
+                Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
+                Player.m_localPlayer.m_debugFly = false;
+            }
+            else
+            {
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
+                Player.m_localPlayer.m_debugFly = true;
+            }
         }
 
         public static void TryRegisterFabs(ZNetScene zNetScene)

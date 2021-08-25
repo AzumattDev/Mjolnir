@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using HarmonyLib;
 using ServerSync;
 using UnityEngine;
@@ -14,12 +15,14 @@ namespace Mjolnir
     [BepInPlugin(PluginId, "Mjolnir", version)]
     public partial class Mjolnir : BaseUnityPlugin
     {
-        public const string version = "1.1.0";
+        public const string version = "1.1.1";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
         private static GameObject mjolnir;
         private Harmony _harmony;
+        private bool flight;
+        public static readonly ManualLogSource MJOLLogger = BepInEx.Logging.Logger.CreateLogSource(PluginName);
 
         private readonly ConfigSync configSync = new ConfigSync(PluginId)
         { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
@@ -122,22 +125,98 @@ namespace Mjolnir
                 ObjectDB.instance.m_recipes.Remove(recipe);
             else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
                 ObjectDB.instance.m_recipes.Add(recipe);
-
             if (!Input.GetKeyDown(KeyCode.Z)) return;
             if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir") return;
-            if (Player.m_localPlayer.m_debugFly)
+            var rotation = Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab.transform.rotation;
+            if (flight)
             {
+                /* Disable flight */
+                this.flight = !this.flight;
+                Player.m_localPlayer.m_body.useGravity = this.flight;
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
-                Player.m_localPlayer.m_debugFly = false;
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
             }
             else
             {
+                /* Enable flight */
+                this.flight = !this.flight;
+                Player.m_localPlayer.m_body.useGravity = this.flight;
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
-                Player.m_localPlayer.m_debugFly = true;
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
+            }
+
+        }
+        public virtual void FixedUpdate()
+        {
+            try
+            {
+
+                if (!Player.m_localPlayer)
+                    return;
+                float fixedDeltaTime = Time.fixedDeltaTime;
+                if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir")
+                {
+                    /* Disable flight if the player isn't holding Mjolnir */
+                    this.flight = false;
+                }
+
+
+                this.UpdateMotion(fixedDeltaTime);
+            }
+            catch (Exception e)
+            {
+
+                MJOLLogger.LogError($"{e}");
             }
         }
-
+        public void UpdateMotion(float dt)
+        {
+            var p = Player.m_localPlayer;
+            p.m_sliding = false;
+            p.m_wallRunning = false;
+            p.m_running = false;
+            p.m_walking = false;
+            if (p.IsDead())
+                return;
+            if (this.flight)
+            {
+                p.m_collider.material.staticFriction = 0.0f;
+                p.m_collider.material.dynamicFriction = 0.0f;
+                this.UpdateMjolnirFlight(dt);
+            }
+        }
+        private void UpdateMjolnirFlight(float dt)
+        {
+            var p = Player.m_localPlayer;
+            p.UseStamina(dt);
+            if (p.m_stamina == 0f)
+            {
+                this.flight = !this.flight;
+                Player.m_localPlayer.m_body.useGravity = this.flight;
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
+                Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
+                // Player.m_localPlayer.m_nview.GetZDO().Set("DebugFly", this.flight);
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
+            }
+            float num = p.m_run ? 50f : 20f;
+            Vector3 b = p.m_moveDir * num;
+            if (p.TakeInput())
+            {
+                if (ZInput.GetButton("Jump"))
+                    b.y = num;
+                else if (Input.GetKey(KeyCode.LeftControl))
+                    b.y = -num;
+            }
+            p.m_currentVel = Vector3.Lerp(p.m_currentVel, b, 0.5f);
+            p.m_body.velocity = p.m_currentVel;
+            p.m_body.useGravity = false;
+            p.m_lastGroundTouch = 0.0f;
+            p.m_maxAirAltitude = p.transform.position.y;
+            p.m_body.rotation = Quaternion.RotateTowards(p.transform.rotation, p.m_lookYaw, p.m_turnSpeed * dt);
+            p.m_body.angularVelocity = Vector3.zero;
+            p.UpdateEyeRotation();
+        }
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
             if (zNetScene == null || zNetScene.m_prefabs == null || zNetScene.m_prefabs.Count <= 0) return;
@@ -177,7 +256,6 @@ namespace Mjolnir
             try
             {
                 if (!ObjectDB.instance.m_recipes.Any())
-                    //Mjolnir.LogInfo("Recipe database not ready for stuff, skipping initialization.");
                     return;
                 Recipe();
 

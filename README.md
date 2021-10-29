@@ -1,6 +1,6 @@
 # MJOLNIR
 
-- **_A hammer granting you the power of Thor.
+- **_A hammer granting you the power of Thor._**
 - **_Move faster, attack harder, & call upon lightning_**
 
 ---

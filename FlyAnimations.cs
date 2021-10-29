@@ -19,16 +19,16 @@ namespace Mjolnir
         {
             AssetBundle asset = GetAssetBundleFromResources("azumattanimations");
             debugFly.Add("Walking", "DebugFlyForward");
-            debugFly.Add("Standard Run", "DebugFlySuperman");
+            debugFly.Add("Standard Run New", "DebugFlySuperman");
             debugFly.Add("Idle", "DebugFly");
-            debugFly.Add("jump", "DebugFly");
+            debugFly.Add("JumpTweaked", "DebugFly");
             debugFly.Add("Jog Forward", "DebugFlySuperman");
             debugFly.Add("Jog Strafe Left", "DebugFly");
-            debugFly.Add("Jog backward", "DebugFly");
+            debugFly.Add("Jog Backward", "DebugFly");
             debugFly.Add("Jog Strafe Left mirrored", "DebugFly");
             debugFly.Add("Sword And Shield Run Right", "DebugFlySuperman");
             debugFly.Add("Cheer", "DebugFlyLeft");
-            debugFly.Add("Waving", "DebugFlyRight");
+            debugFly.Add("Wave", "DebugFlyRight");
             debugFly.Add("No no no", "DebugFlyBack");
 
             ExternalAnimations.Add("DebugFly", asset.LoadAsset<AnimationClip>("DebugFlyMode.anim"));
@@ -46,14 +46,11 @@ namespace Mjolnir
 
             static void Postfix(Player __instance)
             {
+                if (FirstInit) return;
+                FirstInit = true;
 
-                if (!FirstInit)
-                {
-                    FirstInit = true;
-
-                    OrigDebugFly = MakeAOC(new Dictionary<string, string>(), __instance.m_animator.runtimeAnimatorController);
-                    CustomDebugFly = MakeAOC(debugFly, __instance.m_animator.runtimeAnimatorController);
-                }
+                OrigDebugFly = MakeAOC(new Dictionary<string, string>(), __instance.m_animator.runtimeAnimatorController);
+                CustomDebugFly = MakeAOC(debugFly, __instance.m_animator.runtimeAnimatorController);
 
 
 
@@ -70,7 +67,7 @@ namespace Mjolnir
                 string name = animation.name;
                 if (replacement.ContainsKey(name))
                 {
-                    AnimationClip newClip = MonoBehaviour.Instantiate<AnimationClip>(ExternalAnimations[replacement[name]]);
+                    AnimationClip newClip = Instantiate(ExternalAnimations[replacement[name]]);
                     anims.Add(new KeyValuePair<AnimationClip, AnimationClip>(animation, newClip));
                 }
                 else
@@ -82,21 +79,6 @@ namespace Mjolnir
             return aoc;
         }
 
-        /*static void FlyCheckMethod()
-        {
-            Player p = Player.m_localPlayer;
-            if (p.m_debugFly)
-            {
-
-                p.m_animator.runtimeAnimatorController = CustomDebugFly;
-            }
-            else
-            {
-
-                p.m_animator.runtimeAnimatorController = OrigDebugFly;
-            }
-        }*/
-
 
         [HarmonyPatch(typeof(Character), nameof(Character.UpdateDebugFly), typeof(float))]
         static class DebugFlyCustomAnimationController
@@ -105,6 +87,7 @@ namespace Mjolnir
             {
                 __instance.m_zanim.SetBool(Character.onGround, true);
                 __instance.m_zanim.SetFloat(Character.forward_speed, 0f);
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
                 if (ZInput.GetButton("Forward") && !ZInput.GetButton("Run"))
                 {
                     __instance.m_zanim.SetFloat(Character.forward_speed, 1f);
@@ -137,6 +120,44 @@ namespace Mjolnir
             }
         }
 
+        [HarmonyPatch(typeof(Mjolnir), nameof(UpdateMjolnirFlight), typeof(float))]
+        static class DebugFlyCustomAnimationController2
+        {
+            static void Postfix()
+            {
+                Player.m_localPlayer.m_zanim.SetBool(Character.onGround, true);
+                Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 0f);
+                if (ZInput.GetButton("Forward") && !ZInput.GetButton("Run"))
+                {
+                    Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 1f);
+                }
+                else
+                if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
+                {
+                    Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 10f);
+                }
+                else
+                if (ZInput.GetButton("Left"))
+                {
+                    Player.m_localPlayer.m_zanim.SetTrigger("emote_cheer");
+                }
+                else
+                if (ZInput.GetButton("Right"))
+                {
+                    Player.m_localPlayer.m_zanim.SetTrigger("emote_wave");
+                }
+                else
+                if (ZInput.GetButton("Backward"))
+                {
+                    Player.m_localPlayer.m_zanim.SetTrigger("emote_nonono");
+                }
+                else
+                {
+                    Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.UnequipItem))]
 
         static class UnEquipMjolnir
@@ -149,6 +170,7 @@ namespace Mjolnir
                     return;
                 }
                 if (item.m_dropPrefab.name != "Mjolnir") return;
+                if (Player.m_localPlayer.IsDebugFlying()) return;
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
                 Player.m_localPlayer.m_debugFly = false;

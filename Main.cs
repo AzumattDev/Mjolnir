@@ -12,25 +12,26 @@ using UnityEngine;
 
 namespace Mjolnir
 {
-    [BepInPlugin(PluginId, "Mjolnir", version)]
+    [BepInPlugin(PluginId, PluginName, version)]
     public partial class Mjolnir : BaseUnityPlugin
     {
-        public const string version = "1.1.1";
+        public const string version = "1.3.0";
         public const string PluginId = "azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
         private static GameObject mjolnir;
-        private Harmony _harmony;
-        private bool flight;
         public static readonly ManualLogSource MJOLLogger = BepInEx.Logging.Logger.CreateLogSource(PluginName);
 
         private readonly ConfigSync configSync = new ConfigSync(PluginId)
         { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
 
-        private ConfigFile localizationFile;
-
         private readonly Dictionary<string, ConfigEntry<string>> m_localizedStrings =
             new Dictionary<string, ConfigEntry<string>>();
+
+        private Harmony _harmony;
+        private bool flight;
+
+        private ConfigFile localizationFile;
 
         public static Mjolnir Instance { get; private set; }
 
@@ -51,6 +52,15 @@ namespace Mjolnir
             /* No-Craft */
             noCraft = config("General", "Not Craftable", true,
                 "Makes the Mjolnir non-craftable");
+
+            /* No-Flight */
+            noFlight = config("General", "No Flight", true,
+                "Makes the Mjolnir less...Mjolnir. Disable the flight (but why though? It's Mjolnir!)");
+            noFlightMessage = config("General", "No Flight Message",
+                "Your God-Like ability to fly is suppressed by Odin himself",
+                "Message to show when flight is denied to the player. Can make blank to hide message.", false);
+            _flightHotKey = config("General", "WardHotKey", KeyCode.Z,
+                "Personal hotkey to toggle a flight", false);
 
             /* Item 1 */
             req1Prefab = itemConfig("Item 1", "Required Prefab", "FineWood", "Required item for crafting");
@@ -105,10 +115,9 @@ namespace Mjolnir
             baseBackstab = config("Damage", "Base Backstab Bonus", 3, "");
 
 
-
             localizationFile =
                 new ConfigFile(
-                    Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), PluginId + ".Localization.cfg"), false);
+                    Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath) ?? throw new InvalidOperationException(), PluginId + ".Localization.cfg"), false);
 
             LoadAssets();
 
@@ -125,51 +134,56 @@ namespace Mjolnir
                 ObjectDB.instance.m_recipes.Remove(recipe);
             else if (!ObjectDB.instance.m_recipes.Contains(recipe) && !noCraft.Value)
                 ObjectDB.instance.m_recipes.Add(recipe);
-            if (!Input.GetKeyDown(KeyCode.Z)) return;
+            if (!Input.GetKeyDown(_flightHotKey.Value)) return;
             if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir") return;
             var rotation = Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab.transform.rotation;
             if (flight)
             {
                 /* Disable flight */
-                this.flight = !this.flight;
-                Player.m_localPlayer.m_body.useGravity = this.flight;
-                Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
+                flight = !flight;
+                Player.m_localPlayer.m_body.useGravity = flight;
+                if (!Player.m_localPlayer.IsDebugFlying())
+                    Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
-                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
             }
             else
             {
                 /* Enable flight */
-                this.flight = !this.flight;
-                Player.m_localPlayer.m_body.useGravity = this.flight;
-                Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
-                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
-            }
+                if (noFlight.Value)
+                {
+                    if (Player.m_localPlayer.TakeInput())
+                        MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, noFlightMessage.Value);
+                    return;
+                }
 
+                flight = !flight;
+                Player.m_localPlayer.m_body.useGravity = flight;
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
+            }
         }
+
         public virtual void FixedUpdate()
         {
             try
             {
-
                 if (!Player.m_localPlayer)
                     return;
-                float fixedDeltaTime = Time.fixedDeltaTime;
+                var fixedDeltaTime = Time.fixedDeltaTime;
                 if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir")
-                {
                     /* Disable flight if the player isn't holding Mjolnir */
-                    this.flight = false;
-                }
+                    flight = false;
 
 
-                this.UpdateMotion(fixedDeltaTime);
+                UpdateMotion(fixedDeltaTime);
             }
             catch (Exception e)
             {
-
                 MJOLLogger.LogError($"{e}");
             }
         }
+
         public void UpdateMotion(float dt)
         {
             var p = Player.m_localPlayer;
@@ -179,28 +193,30 @@ namespace Mjolnir
             p.m_walking = false;
             if (p.IsDead())
                 return;
-            if (this.flight)
+            if (flight)
             {
                 p.m_collider.material.staticFriction = 0.0f;
                 p.m_collider.material.dynamicFriction = 0.0f;
-                this.UpdateMjolnirFlight(dt);
+                UpdateMjolnirFlight(dt);
             }
         }
-        private void UpdateMjolnirFlight(float dt)
+
+        public void UpdateMjolnirFlight(float dt)
         {
             var p = Player.m_localPlayer;
             p.UseStamina(dt);
             if (p.m_stamina == 0f)
             {
-                this.flight = !this.flight;
-                Player.m_localPlayer.m_body.useGravity = this.flight;
+                flight = !flight;
+                Player.m_localPlayer.m_body.useGravity = flight;
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
                 // Player.m_localPlayer.m_nview.GetZDO().Set("DebugFly", this.flight);
-                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + this.flight);
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
             }
-            float num = p.m_run ? 50f : 20f;
-            Vector3 b = p.m_moveDir * num;
+
+            var num = p.m_run ? 50f : 20f;
+            var b = p.m_moveDir * num;
             if (p.TakeInput())
             {
                 if (ZInput.GetButton("Jump"))
@@ -208,6 +224,7 @@ namespace Mjolnir
                 else if (Input.GetKey(KeyCode.LeftControl))
                     b.y = -num;
             }
+
             p.m_currentVel = Vector3.Lerp(p.m_currentVel, b, 0.5f);
             p.m_body.velocity = p.m_currentVel;
             p.m_body.useGravity = false;
@@ -217,6 +234,7 @@ namespace Mjolnir
             p.m_body.angularVelocity = Vector3.zero;
             p.UpdateEyeRotation();
         }
+
         public static void TryRegisterFabs(ZNetScene zNetScene)
         {
             if (zNetScene == null || zNetScene.m_prefabs == null || zNetScene.m_prefabs.Count <= 0) return;
@@ -354,33 +372,33 @@ namespace Mjolnir
         private static void InitDamageValues(ItemDrop item)
         {
             var itmdrop = item;
-            itmdrop.m_itemData.m_shared.m_damages.m_damage = (int)baseDamage.Value;
-            itmdrop.m_itemData.m_shared.m_toolTier = (int)baseBlunt.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_blunt = (int)baseBlunt.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_slash = (int)baseSlash.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_pierce = (int)basePierce.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_chop = (int)baseChop.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_pickaxe = (int)basePickaxe.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_fire = (int)baseFire.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_frost = (int)baseFrost.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_lightning = (int)baseLightning.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_poison = (int)basePoison.Value;
-            itmdrop.m_itemData.m_shared.m_damages.m_spirit = (int)baseSpirit.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_damage = (int)baseDamagePerPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_blunt = (int)baseBluntPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_slash = (int)baseSlashPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_pierce = (int)basePiercePerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_chop = (int)baseChopPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_pickaxe = (int)basePickaxePerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_fire = (int)baseFirePerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_frost = (int)baseFrostPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_lightning = (int)baseLightningPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_poison = (int)basePoisonPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_spirit = (int)baseSpiritPerLevel.Value;
-            itmdrop.m_itemData.m_shared.m_attackForce = (int)baseAttackForce.Value;
-            itmdrop.m_itemData.m_shared.m_blockPower = (int)baseBlockPower.Value;
-            itmdrop.m_itemData.m_shared.m_deflectionForce = (int)baseParryForce.Value;
-            itmdrop.m_itemData.m_shared.m_backstabBonus = (int)baseBackstab.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_damage = baseDamage.Value;
+            itmdrop.m_itemData.m_shared.m_toolTier = baseBlunt.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_blunt = baseBlunt.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_slash = baseSlash.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_pierce = basePierce.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_chop = baseChop.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_pickaxe = basePickaxe.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_fire = baseFire.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_frost = baseFrost.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_lightning = baseLightning.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_poison = basePoison.Value;
+            itmdrop.m_itemData.m_shared.m_damages.m_spirit = baseSpirit.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_damage = baseDamagePerPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_blunt = baseBluntPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_slash = baseSlashPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_pierce = basePiercePerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_chop = baseChopPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_pickaxe = basePickaxePerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_fire = baseFirePerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_frost = baseFrostPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_lightning = baseLightningPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_poison = basePoisonPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_damagesPerLevel.m_spirit = baseSpiritPerLevel.Value;
+            itmdrop.m_itemData.m_shared.m_attackForce = baseAttackForce.Value;
+            itmdrop.m_itemData.m_shared.m_blockPower = baseBlockPower.Value;
+            itmdrop.m_itemData.m_shared.m_deflectionForce = baseParryForce.Value;
+            itmdrop.m_itemData.m_shared.m_backstabBonus = baseBackstab.Value;
         }
 
 
@@ -458,6 +476,9 @@ namespace Mjolnir
         public static ConfigEntry<int> nexusID;
 
         public static ConfigEntry<bool> noCraft;
+        public static ConfigEntry<bool> noFlight;
+        public static ConfigEntry<string> noFlightMessage;
+        private static ConfigEntry<KeyCode> _flightHotKey;
 
         public static ConfigEntry<int> reqm_minStationLevel;
 
@@ -512,7 +533,12 @@ namespace Mjolnir
         private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,
             bool synchronizedSetting = true)
         {
-            var configEntry = Config.Bind(group, name, value, description);
+            var extendedDescription =
+                new ConfigDescription(
+                    description.Description +
+                    (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"),
+                    description.AcceptableValues, description.Tags);
+            var configEntry = Config.Bind(group, name, value, extendedDescription);
 
             var syncedConfigEntry = configSync.AddConfigEntry(configEntry);
             syncedConfigEntry.SynchronizedConfig = synchronizedSetting;

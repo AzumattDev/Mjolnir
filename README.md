@@ -5,8 +5,12 @@
 
 ---
 
-## Windows (Steam)
+## Installation
 
+- - Link to Download
+   - <https://www.nexusmods.com/valheim/mods/1357?tab=description/>
+
+### Windows (Steam)
 
 1. Locate your game folder manually or start Steam client and:
    - _**A.**_ Right click the Valheim game in your steam library.
@@ -17,7 +21,7 @@
 
 ---
 
-## Server
+### Server
 
 > **_Must be installed on both the client and the server for syncing to work properly._**
 

@@ -1,20 +1,21 @@
 ﻿using System.Collections.Generic;
 using HarmonyLib;
+using ItemManager;
 using UnityEngine;
 
 namespace Mjolnir
 {
     public partial class Mjolnir
     {
-        private static readonly Dictionary<string, string> DebugFly = new Dictionary<string, string>();
-        public static Dictionary<string, AnimationClip> ExternalAnimations = new Dictionary<string, AnimationClip>();
+        private static readonly Dictionary<string, string> DebugFly = new();
+        public static Dictionary<string, AnimationClip> ExternalAnimations = new();
         private static bool _firstInit;
         private static RuntimeAnimatorController _customDebugFly;
         private static RuntimeAnimatorController _origDebugFly;
 
         private static void AnimationAwake()
         {
-            AssetBundle asset = GetAssetBundleFromResources("azumattanimations");
+            AssetBundle asset = PrefabManager.RegisterAssetBundle("azumattanimations");
             DebugFly.Add("Walking", "DebugFlyForward");
             DebugFly.Add("Standard Run New", "DebugFlySuperman");
             DebugFly.Add("Run Item Right", "DebugFlySuperman");
@@ -42,9 +43,8 @@ namespace Mjolnir
         private static RuntimeAnimatorController MakeAoc(IReadOnlyDictionary<string, string> replacement,
             RuntimeAnimatorController original)
         {
-            AnimatorOverrideController aoc = new AnimatorOverrideController(original);
-            List<KeyValuePair<AnimationClip, AnimationClip>> anims =
-                new List<KeyValuePair<AnimationClip, AnimationClip>>();
+            AnimatorOverrideController aoc = new(original);
+            List<KeyValuePair<AnimationClip, AnimationClip>> anims = new();
             foreach (AnimationClip animation in aoc.animationClips)
             {
                 string name = animation.name;

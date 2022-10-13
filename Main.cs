@@ -16,14 +16,14 @@ namespace Mjolnir
     public partial class Mjolnir : BaseUnityPlugin
     {
         public const string version = "1.3.0";
-        public const string PluginId = "azumatt.Mjolnir";
+        public const string PluginId = "Azumatt.Mjolnir";
         public const string Author = "Azumatt";
         public const string PluginName = "Mjolnir";
         private static GameObject mjolnir;
         public static readonly ManualLogSource MJOLLogger = BepInEx.Logging.Logger.CreateLogSource(PluginName);
 
         private readonly ConfigSync configSync = new ConfigSync(PluginId)
-        { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
+            { DisplayName = PluginName, CurrentVersion = version, MinimumRequiredVersion = version };
 
         private readonly Dictionary<string, ConfigEntry<string>> m_localizedStrings =
             new Dictionary<string, ConfigEntry<string>>();
@@ -44,7 +44,7 @@ namespace Mjolnir
 
             ConfigEntry<T> itemConfig<T>(string item, string name, T value, string description)
             {
-                var configEntry = config("Recipe " + item, name, value, description);
+                ConfigEntry<T> configEntry = config("Recipe " + item, name, value, description);
                 configEntry.SettingChanged += (s, e) => UpdateRecipe = true;
                 return configEntry;
             }
@@ -54,12 +54,12 @@ namespace Mjolnir
                 "Makes the Mjolnir non-craftable");
 
             /* No-Flight */
-            noFlight = config("General", "No Flight", true,
+            noFlight = config("General", "No Flight", false,
                 "Makes the Mjolnir less...Mjolnir. Disable the flight (but why though? It's Mjolnir!)");
             noFlightMessage = config("General", "No Flight Message",
                 "Your God-Like ability to fly is suppressed by Odin himself",
                 "Message to show when flight is denied to the player. Can make blank to hide message.", false);
-            _flightHotKey = config("General", "WardHotKey", KeyCode.Z,
+            _flightHotKey = config("General", "FlightHotKey", KeyCode.Z,
                 "Personal hotkey to toggle a flight", false);
 
             /* Item 1 */
@@ -117,7 +117,8 @@ namespace Mjolnir
 
             localizationFile =
                 new ConfigFile(
-                    Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath) ?? throw new InvalidOperationException(), PluginId + ".Localization.cfg"), false);
+                    Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath) ?? throw new InvalidOperationException(),
+                        PluginId + ".Localization.cfg"), false);
 
             LoadAssets();
 
@@ -136,14 +137,14 @@ namespace Mjolnir
                 ObjectDB.instance.m_recipes.Add(recipe);
             if (!Input.GetKeyDown(_flightHotKey.Value)) return;
             if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir") return;
-            var rotation = Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab.transform.rotation;
+            //Quaternion? rotation = Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab.transform.rotation;
             if (flight)
             {
                 /* Disable flight */
                 flight = !flight;
                 Player.m_localPlayer.m_body.useGravity = flight;
                 if (!Player.m_localPlayer.IsDebugFlying())
-                    Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
+                    Player.m_localPlayer.m_animator.runtimeAnimatorController = _origDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
                 Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
             }
@@ -159,7 +160,7 @@ namespace Mjolnir
 
                 flight = !flight;
                 Player.m_localPlayer.m_body.useGravity = flight;
-                Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = _customDebugFly;
                 Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
             }
         }
@@ -170,7 +171,7 @@ namespace Mjolnir
             {
                 if (!Player.m_localPlayer)
                     return;
-                var fixedDeltaTime = Time.fixedDeltaTime;
+                float fixedDeltaTime = Time.fixedDeltaTime;
                 if (Player.m_localPlayer.GetCurrentWeapon()?.m_dropPrefab?.name != "Mjolnir")
                     /* Disable flight if the player isn't holding Mjolnir */
                     flight = false;
@@ -186,7 +187,7 @@ namespace Mjolnir
 
         public void UpdateMotion(float dt)
         {
-            var p = Player.m_localPlayer;
+            Player p = Player.m_localPlayer;
             p.m_sliding = false;
             p.m_wallRunning = false;
             p.m_running = false;
@@ -203,20 +204,20 @@ namespace Mjolnir
 
         public void UpdateMjolnirFlight(float dt)
         {
-            var p = Player.m_localPlayer;
+            Player p = Player.m_localPlayer;
             p.UseStamina(dt);
             if (p.m_stamina == 0f)
             {
+                Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
                 flight = !flight;
                 Player.m_localPlayer.m_body.useGravity = flight;
-                Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
-                Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = _origDebugFly;
                 // Player.m_localPlayer.m_nview.GetZDO().Set("DebugFly", this.flight);
                 Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + flight);
             }
 
-            var num = p.m_run ? 50f : 20f;
-            var b = p.m_moveDir * num;
+            float num = p.m_run ? 50f : 20f;
+            Vector3 b = p.m_moveDir * num;
             if (p.TakeInput())
             {
                 if (ZInput.GetButton("Jump"))
@@ -229,8 +230,9 @@ namespace Mjolnir
             p.m_body.velocity = p.m_currentVel;
             p.m_body.useGravity = false;
             p.m_lastGroundTouch = 0.0f;
-            p.m_maxAirAltitude = p.transform.position.y;
-            p.m_body.rotation = Quaternion.RotateTowards(p.transform.rotation, p.m_lookYaw, p.m_turnSpeed * dt);
+            Transform transform1 = p.transform;
+            p.m_maxAirAltitude = transform1.position.y;
+            p.m_body.rotation = Quaternion.RotateTowards(transform1.rotation, p.m_lookYaw, p.m_turnSpeed * dt);
             p.m_body.angularVelocity = Vector3.zero;
             p.UpdateEyeRotation();
         }
@@ -243,11 +245,11 @@ namespace Mjolnir
 
         private static AssetBundle GetAssetBundleFromResources(string filename)
         {
-            var execAssembly = Assembly.GetExecutingAssembly();
-            var resourceName = execAssembly.GetManifestResourceNames()
+            Assembly execAssembly = Assembly.GetExecutingAssembly();
+            string resourceName = execAssembly.GetManifestResourceNames()
                 .Single(str => str.EndsWith(filename));
 
-            using (var stream = execAssembly.GetManifestResourceStream(resourceName))
+            using (Stream stream = execAssembly.GetManifestResourceStream(resourceName))
             {
                 return AssetBundle.LoadFromStream(stream);
             }
@@ -255,15 +257,15 @@ namespace Mjolnir
 
         public static void LoadAssets()
         {
-            var assetBundle = GetAssetBundleFromResources("mjolnir");
+            AssetBundle assetBundle = GetAssetBundleFromResources("mjolnir");
             mjolnir = assetBundle.LoadAsset<GameObject>("Mjolnir");
             assetBundle?.Unload(false);
         }
 
         public static void RegisterItems()
         {
-            if (ObjectDB.instance.m_items.Count == 0 || ObjectDB.instance.GetItemPrefab("Amber") == null) return;
-            var itemDrop = mjolnir.GetComponent<ItemDrop>();
+            if (ObjectDB.instance.m_items.Count == 0 || ObjectDB.instance.GetItemPrefab("Wood") == null) return;
+            ItemDrop itemDrop = mjolnir.GetComponent<ItemDrop>();
             if (itemDrop != null)
                 if (ObjectDB.instance.GetItemPrefab(mjolnir.name.GetStableHashCode()) == null)
                     ObjectDB.instance.m_items.Add(mjolnir);
@@ -287,7 +289,7 @@ namespace Mjolnir
 
         public static void Recipe()
         {
-            var db = ObjectDB.instance.m_items;
+            List<GameObject> db = ObjectDB.instance.m_items;
             try
             {
                 db.Remove(mjolnir);
@@ -299,10 +301,10 @@ namespace Mjolnir
 
             if (recipe == null) recipe = ScriptableObject.CreateInstance<Recipe>();
             if (!ObjectDB.instance.m_recipes.Contains(recipe)) ObjectDB.instance.m_recipes.Add(recipe);
-            var thing1 = ObjectDB.instance.GetItemPrefab(req1Prefab.Value);
-            var thing2 = ObjectDB.instance.GetItemPrefab(req2Prefab.Value);
-            var thing3 = ObjectDB.instance.GetItemPrefab(req3Prefab.Value);
-            var thing4 = ObjectDB.instance.GetItemPrefab(req4Prefab.Value);
+            GameObject thing1 = ObjectDB.instance.GetItemPrefab(req1Prefab.Value);
+            GameObject thing2 = ObjectDB.instance.GetItemPrefab(req2Prefab.Value);
+            GameObject thing3 = ObjectDB.instance.GetItemPrefab(req3Prefab.Value);
+            GameObject thing4 = ObjectDB.instance.GetItemPrefab(req4Prefab.Value);
             recipe.name = "RecipeMjolnir";
             recipe.m_craftingStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
             recipe.m_repairStation = ZNetScene.instance.GetPrefab("forge").GetComponent<CraftingStation>();
@@ -360,9 +362,9 @@ namespace Mjolnir
         public string LocalizeWord(string key, string val)
         {
             if (m_localizedStrings.ContainsKey(key)) return $"${key}";
-            var loc = Localization.instance;
-            var langSection = loc.GetSelectedLanguage();
-            var configEntry = localizationFile.Bind(langSection, key, val);
+            Localization loc = Localization.instance;
+            string langSection = loc.GetSelectedLanguage();
+            ConfigEntry<string> configEntry = localizationFile.Bind(langSection, key, val);
             Localization.instance.AddWord(key, configEntry.Value);
             m_localizedStrings.Add(key, configEntry);
 
@@ -371,7 +373,7 @@ namespace Mjolnir
 
         private static void InitDamageValues(ItemDrop item)
         {
-            var itmdrop = item;
+            ItemDrop itmdrop = item;
             itmdrop.m_itemData.m_shared.m_damages.m_damage = baseDamage.Value;
             itmdrop.m_itemData.m_shared.m_toolTier = baseBlunt.Value;
             itmdrop.m_itemData.m_shared.m_damages.m_blunt = baseBlunt.Value;
@@ -402,7 +404,7 @@ namespace Mjolnir
         }
 
 
-        [HarmonyPatch(typeof(ZNetScene), "Awake")]
+        [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))]
         public static class MJOLZNetScene_Awake_Patch
         {
             public static bool Prefix(ZNetScene __instance)
@@ -412,7 +414,7 @@ namespace Mjolnir
             }
         }
 
-        [HarmonyPatch(typeof(ObjectDB), "Awake")]
+        [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.Awake))]
         public static class MJOLObjectDB_Awake_Patch
         {
             public static void Postfix()
@@ -422,7 +424,7 @@ namespace Mjolnir
             }
         }
 
-        [HarmonyPatch(typeof(ObjectDB), "CopyOtherDB")]
+        [HarmonyPatch(typeof(ObjectDB), nameof(ObjectDB.CopyOtherDB))]
         public static class MJOLObjectDB_CopyOtherDB_Patch
         {
             public static void Postfix()
@@ -533,14 +535,14 @@ namespace Mjolnir
         private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,
             bool synchronizedSetting = true)
         {
-            var extendedDescription =
+            ConfigDescription extendedDescription =
                 new ConfigDescription(
                     description.Description +
                     (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"),
                     description.AcceptableValues, description.Tags);
-            var configEntry = Config.Bind(group, name, value, extendedDescription);
+            ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
 
-            var syncedConfigEntry = configSync.AddConfigEntry(configEntry);
+            SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
             syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
 
             return configEntry;

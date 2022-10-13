@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
+﻿using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
@@ -10,26 +6,29 @@ namespace Mjolnir
 {
     public partial class Mjolnir
     {
-        private static Dictionary<string, string> debugFly = new Dictionary<string, string>();
+        private static readonly Dictionary<string, string> DebugFly = new Dictionary<string, string>();
         public static Dictionary<string, AnimationClip> ExternalAnimations = new Dictionary<string, AnimationClip>();
-        private static bool FirstInit;
-        private static RuntimeAnimatorController CustomDebugFly;
-        private static RuntimeAnimatorController OrigDebugFly;
-        void AnimationAwake()
+        private static bool _firstInit;
+        private static RuntimeAnimatorController _customDebugFly;
+        private static RuntimeAnimatorController _origDebugFly;
+
+        private static void AnimationAwake()
         {
             AssetBundle asset = GetAssetBundleFromResources("azumattanimations");
-            debugFly.Add("Walking", "DebugFlyForward");
-            debugFly.Add("Standard Run New", "DebugFlySuperman");
-            debugFly.Add("Idle", "DebugFly");
-            debugFly.Add("JumpTweaked", "DebugFly");
-            debugFly.Add("Jog Forward", "DebugFlySuperman");
-            debugFly.Add("Jog Strafe Left", "DebugFly");
-            debugFly.Add("Jog Backward", "DebugFly");
-            debugFly.Add("Jog Strafe Left mirrored", "DebugFly");
-            debugFly.Add("Sword And Shield Run Right", "DebugFlySuperman");
-            debugFly.Add("Cheer", "DebugFlyLeft");
-            debugFly.Add("Wave", "DebugFlyRight");
-            debugFly.Add("No no no", "DebugFlyBack");
+            DebugFly.Add("Walking", "DebugFlyForward");
+            DebugFly.Add("Standard Run New", "DebugFlySuperman");
+            DebugFly.Add("Run Item Right", "DebugFlySuperman");
+            DebugFly.Add("Idle", "DebugFly");
+            DebugFly.Add("IdleTweaked", "DebugFly");
+            DebugFly.Add("JumpTweaked", "DebugFly");
+            DebugFly.Add("Jog Forward", "DebugFlySuperman");
+            DebugFly.Add("Jog Strafe Left", "DebugFly");
+            DebugFly.Add("Jog backward", "DebugFly");
+            DebugFly.Add("Jog Strafe Left mirrored", "DebugFly");
+            DebugFly.Add("Sword And Shield Run Right", "DebugFlySuperman");
+            DebugFly.Add("Cheer", "DebugFlyLeft");
+            DebugFly.Add("Wave", "DebugFlyRight");
+            DebugFly.Add("No no no", "DebugFlyBack");
 
             ExternalAnimations.Add("DebugFly", asset.LoadAsset<AnimationClip>("DebugFlyMode.anim"));
             ExternalAnimations.Add("DebugFlyForward", asset.LoadAsset<AnimationClip>("DebugFlyForward.anim"));
@@ -39,30 +38,14 @@ namespace Mjolnir
             ExternalAnimations.Add("DebugFlyBack", asset.LoadAsset<AnimationClip>("DebugFlyBack.anim"));
         }
 
-        [HarmonyPatch(typeof(Player), nameof(Player.Start))]
-        [HarmonyPriority(Priority.Last)]
-        static class TESTPATCHPLAYERANIMS
+
+        private static RuntimeAnimatorController MakeAoc(IReadOnlyDictionary<string, string> replacement,
+            RuntimeAnimatorController original)
         {
-
-            static void Postfix(Player __instance)
-            {
-                if (FirstInit) return;
-                FirstInit = true;
-
-                OrigDebugFly = MakeAOC(new Dictionary<string, string>(), __instance.m_animator.runtimeAnimatorController);
-                CustomDebugFly = MakeAOC(debugFly, __instance.m_animator.runtimeAnimatorController);
-
-
-
-            }
-        }
-
-
-        public static RuntimeAnimatorController MakeAOC(Dictionary<string, string> replacement, RuntimeAnimatorController ORIGINAL)
-        {
-            AnimatorOverrideController aoc = new AnimatorOverrideController(ORIGINAL);
-            var anims = new List<KeyValuePair<AnimationClip, AnimationClip>>();
-            foreach (var animation in aoc.animationClips)
+            AnimatorOverrideController aoc = new AnimatorOverrideController(original);
+            List<KeyValuePair<AnimationClip, AnimationClip>> anims =
+                new List<KeyValuePair<AnimationClip, AnimationClip>>();
+            foreach (AnimationClip animation in aoc.animationClips)
             {
                 string name = animation.name;
                 if (replacement.ContainsKey(name))
@@ -75,107 +58,87 @@ namespace Mjolnir
                     anims.Add(new KeyValuePair<AnimationClip, AnimationClip>(animation, animation));
                 }
             }
+
             aoc.ApplyOverrides(anims);
             return aoc;
         }
 
-
-        [HarmonyPatch(typeof(Character), nameof(Character.UpdateDebugFly), typeof(float))]
-        static class DebugFlyCustomAnimationController
+        [HarmonyPatch(typeof(Player), nameof(Player.Start))]
+        [HarmonyPriority(Priority.Last)]
+        private static class TESTPATCHPLAYERANIMS
         {
-            static void Postfix(Character __instance)
+            private static void Postfix(Player __instance)
+            {
+                if (_firstInit) return;
+                _firstInit = true;
+
+                _origDebugFly = MakeAoc(new Dictionary<string, string>(),
+                    __instance.m_animator.runtimeAnimatorController);
+                _customDebugFly = MakeAoc(DebugFly, __instance.m_animator.runtimeAnimatorController);
+            }
+        }
+
+
+        /*[HarmonyPatch(typeof(Character), nameof(Character.UpdateDebugFly), typeof(float))]
+        private static class DebugFlyCustomAnimationController
+        {
+            private static void Postfix(Character __instance)
             {
                 __instance.m_zanim.SetBool(Character.onGround, true);
                 __instance.m_zanim.SetFloat(Character.forward_speed, 0f);
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
                 if (ZInput.GetButton("Forward") && !ZInput.GetButton("Run"))
-                {
                     __instance.m_zanim.SetFloat(Character.forward_speed, 1f);
-                }
-                else
-                if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
-                {
+                else if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
                     __instance.m_zanim.SetFloat(Character.forward_speed, 10f);
-                }
-                else
-                if (ZInput.GetButton("Left"))
-                {
+                else if (ZInput.GetButton("Left"))
                     __instance.m_zanim.SetTrigger("emote_cheer");
-                }
-                else
-                if (ZInput.GetButton("Right"))
-                {
+                else if (ZInput.GetButton("Right"))
                     __instance.m_zanim.SetTrigger("emote_wave");
-                }
-                else
-                if (ZInput.GetButton("Backward"))
-                {
+                else if (ZInput.GetButton("Backward"))
                     __instance.m_zanim.SetTrigger("emote_nonono");
-                }
                 else
-                {
                     __instance.m_zanim.SetTrigger("emote_stop");
-                }
                 //Player.m_localPlayer.transform.rotation = Quaternion.LookRotation(GameCamera.instance.transform.forward);
             }
-        }
+        }*/
 
         [HarmonyPatch(typeof(Mjolnir), nameof(UpdateMjolnirFlight), typeof(float))]
-        static class DebugFlyCustomAnimationController2
+        private static class DebugFlyCustomAnimationController2
         {
-            static void Postfix()
+            private static void Postfix()
             {
                 Player.m_localPlayer.m_zanim.SetBool(Character.onGround, true);
                 Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 0f);
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = _customDebugFly;
                 if (ZInput.GetButton("Forward") && !ZInput.GetButton("Run"))
-                {
                     Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 1f);
-                }
-                else
-                if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
-                {
+                else if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
                     Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 10f);
-                }
-                else
-                if (ZInput.GetButton("Left"))
-                {
+                else if (ZInput.GetButton("Left"))
                     Player.m_localPlayer.m_zanim.SetTrigger("emote_cheer");
-                }
-                else
-                if (ZInput.GetButton("Right"))
-                {
+                else if (ZInput.GetButton("Right"))
                     Player.m_localPlayer.m_zanim.SetTrigger("emote_wave");
-                }
-                else
-                if (ZInput.GetButton("Backward"))
-                {
+                else if (ZInput.GetButton("Backward"))
                     Player.m_localPlayer.m_zanim.SetTrigger("emote_nonono");
-                }
                 else
-                {
                     Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
-                }
             }
         }
 
         [HarmonyPatch(typeof(Humanoid), nameof(Humanoid.UnequipItem))]
-
-        static class UnEquipMjolnir
+        private static class UnEquipMjolnir
         {
             [HarmonyPrefix]
-            static void RemoveFlight(ItemDrop.ItemData item)
+            private static void RemoveFlight(Humanoid __instance, ItemDrop.ItemData item, bool triggerEquipEffects)
             {
-                if (item == null)
-                {
-                    return;
-                }
+                if (item == null || !Player.m_localPlayer || !__instance.IsPlayer()) return;
                 if (item.m_dropPrefab.name != "Mjolnir") return;
                 if (Player.m_localPlayer.IsDebugFlying()) return;
-                Player.m_localPlayer.m_animator.runtimeAnimatorController = OrigDebugFly;
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = _origDebugFly;
                 Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
                 Player.m_localPlayer.m_debugFly = false;
             }
-
         }
     }
 }

@@ -39,8 +39,6 @@ namespace Mjolnir
         {
             serverConfigLocked = config("General", "Force Server Config", true, "Force Server Config");
             configSync.AddLockingConfigEntry(serverConfigLocked);
-            nexusID = config("General", "NexusID", 1357,
-                new ConfigDescription("Nexus mod ID for updates", null, new ConfigurationManagerAttributes()), false);
 
             ConfigEntry<T> itemConfig<T>(string item, string name, T value, string description)
             {

@@ -28,7 +28,7 @@
 1. Locate your BepInEx folder manually and:
    a. Extract the contents of the archive into the BepInEx folder.
    b. Launch your game at least once to generate the config file needed if you haven't already done so.
-   c. Locate `"azumatt.Mjolnir.Localization.cfg"` under `BepInEx\config` on your machine and configure the mod to your needs. If you are forcing configurations, these settings will be what everyone synchronizes to.
+   c. Locate `"Azumatt.Mjolnir.Localization.cfg"` under `BepInEx\config` on your machine and configure the mod to your needs. If you are forcing configurations, these settings will be what everyone synchronizes to.
 2. Reboot your server. All clients will now sync to the server's config file even if theirs differs. Config Manager mod changes will only apply if the person changing the configuration is an Admin on the server. The changes will be reflected live if the admin changes them while in game.
 
 - Prefab Name = `“Mjolnir”`
@@ -45,8 +45,3 @@
 
 - Feel free to add to the repo:
   - <https://github.com/AzumattDev/Mjolnir>
-
-### Special thanks
-
-
-- _**Special thank you to Blaxxun for her server sync being amazing and LIVE updates to clients.**_

@@ -10,15 +10,15 @@ public static class RegisterAndCheckVersion
     private static void Prefix(ZNetPeer peer, ref ZNet __instance)
     {
         // Register version check call
-        Mjolnir.MJOLLogger.LogDebug("Registering version RPC handler");
-        peer.m_rpc.Register($"{Mjolnir.ModName}_VersionCheck",
+        MjolnirPlugin.MJOLLogger.LogDebug("Registering version RPC handler");
+        peer.m_rpc.Register($"{MjolnirPlugin.ModName}_VersionCheck",
             new Action<ZRpc, ZPackage>(RpcHandlers.RPC_Mjolnir_Version));
 
         // Make calls to check versions
-        Mjolnir.MJOLLogger.LogDebug("Invoking version check");
+        MjolnirPlugin.MJOLLogger.LogDebug("Invoking version check");
         ZPackage zpackage = new();
-        zpackage.Write(Mjolnir.ModVersion);
-        peer.m_rpc.Invoke($"{Mjolnir.ModName}_VersionCheck", zpackage);
+        zpackage.Write(MjolnirPlugin.ModVersion);
+        peer.m_rpc.Invoke($"{MjolnirPlugin.ModName}_VersionCheck", zpackage);
     }
 }
 
@@ -29,7 +29,7 @@ public static class VerifyClient
     {
         if (!__instance.IsServer() || RpcHandlers.ValidatedPeers.Contains(rpc)) return true;
         // Disconnect peer if they didn't send mod version at all
-        Mjolnir.MJOLLogger.LogWarning(
+        MjolnirPlugin.MJOLLogger.LogWarning(
             $"Peer ({rpc.m_socket.GetHostName()}) never sent version or couldn't due to previous disconnect, disconnecting");
         rpc.Invoke("Error", 3);
         return false; // Prevent calling underlying method
@@ -49,7 +49,7 @@ public class ShowConnectionError
     {
         if (__instance.m_connectionFailedPanel.activeSelf)
         {
-            __instance.m_connectionFailedError.text += "\n" + Mjolnir.ConnectionError;
+            __instance.m_connectionFailedError.text += "\n" + MjolnirPlugin.ConnectionError;
             __instance.m_connectionFailedError.resizeTextMaxSize = 25;
             __instance.m_connectionFailedError.resizeTextMinSize = 15;
         }
@@ -63,7 +63,7 @@ public static class RemoveDisconnectedPeerFromVerified
     {
         if (!__instance.IsServer()) return;
         // Remove peer from validated list
-        Mjolnir.MJOLLogger.LogInfo(
+        MjolnirPlugin.MJOLLogger.LogInfo(
             $"Peer (Player Name: {peer.m_playerName} [{peer.m_rpc.m_socket.GetHostName()}]) disconnected, removing from validated list");
         _ = RpcHandlers.ValidatedPeers.Remove(peer.m_rpc);
     }
@@ -76,16 +76,16 @@ public static class RpcHandlers
     public static void RPC_Mjolnir_Version(ZRpc rpc, ZPackage pkg)
     {
         string? version = pkg.ReadString();
-        Mjolnir.MJOLLogger.LogInfo("Version check, local: " +
-                                            Mjolnir.ModVersion +
+        MjolnirPlugin.MJOLLogger.LogInfo("Version check, local: " +
+                                            MjolnirPlugin.ModVersion +
                                             ",  remote: " + version);
-        if (version != Mjolnir.ModVersion)
+        if (version != MjolnirPlugin.ModVersion)
         {
-            Mjolnir.ConnectionError =
-                $"{Mjolnir.ModName} Installed: {Mjolnir.ModVersion}\n Needed: {version}";
+            MjolnirPlugin.ConnectionError =
+                $"{MjolnirPlugin.ModName} Installed: {MjolnirPlugin.ModVersion}\n Needed: {version}";
             if (!ZNet.instance.IsServer()) return;
             // Different versions - force disconnect client from server
-            Mjolnir.MJOLLogger.LogWarning(
+            MjolnirPlugin.MJOLLogger.LogWarning(
                 $"Peer ({rpc.m_socket.GetHostName()}) has incompatible version, disconnecting");
             rpc.Invoke("Error", 3);
         }
@@ -94,12 +94,12 @@ public static class RpcHandlers
             if (!ZNet.instance.IsServer())
             {
                 // Enable mod on client if versions match
-                Mjolnir.MJOLLogger.LogInfo("Received same version from server!");
+                MjolnirPlugin.MJOLLogger.LogInfo("Received same version from server!");
             }
             else
             {
                 // Add client to validated list
-                Mjolnir.MJOLLogger.LogInfo(
+                MjolnirPlugin.MJOLLogger.LogInfo(
                     $"Adding peer ({rpc.m_socket.GetHostName()}) to validated list");
                 ValidatedPeers.Add(rpc);
             }

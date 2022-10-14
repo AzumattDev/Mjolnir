@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle(Mjolnir.Mjolnir.ModName)]
+[assembly: AssemblyTitle(Mjolnir.MjolnirPlugin.ModName)]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany(Mjolnir.Mjolnir.ModAuthor)]
-[assembly: AssemblyProduct(Mjolnir.Mjolnir.ModName)]
+[assembly: AssemblyCompany(Mjolnir.MjolnirPlugin.ModAuthor)]
+[assembly: AssemblyProduct(Mjolnir.MjolnirPlugin.ModName)]
 [assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion(Mjolnir.Mjolnir.ModVersion)]
-[assembly: AssemblyFileVersion(Mjolnir.Mjolnir.ModVersion)]
+[assembly: AssemblyVersion(Mjolnir.MjolnirPlugin.ModVersion)]
+[assembly: AssemblyFileVersion(Mjolnir.MjolnirPlugin.ModVersion)]

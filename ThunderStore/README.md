@@ -2,7 +2,7 @@
 
 <details><summary><b>Update Information</b></summary>
 
-### v1.4.1
+### v1.4.1/1.4.2
 
 - Update Item Manager and ServerSync internally. Warning, this will mess up your configuration file for this mod. Please reconfigure it.
 - 

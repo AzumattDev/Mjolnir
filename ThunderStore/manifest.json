@@ -1,6 +1,6 @@
 {
     "name": "Mjolnir",
-    "version_number": "1.4.2",
+    "version_number": "1.4.3",
     "website_url": "https://discord.gg/KKHujtRGvB",
     "description": "A hammer granting you the power of Thor. Fly, Move faster, attack harder, & call upon lightning",
     "dependencies": [

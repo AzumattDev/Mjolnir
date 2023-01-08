@@ -14,7 +14,7 @@ namespace Mjolnir;
 [BepInPlugin(ModGUID, ModName, ModVersion)]
 public class MjolnirPlugin : BaseUnityPlugin
 {
-    public const string ModVersion = "1.4.3";
+    public const string ModVersion = "1.4.4";
     public const string ModGUID = "Azumatt.Mjolnir";
     public const string ModAuthor = "Azumatt";
     public const string ModName = "Mjolnir";

@@ -2,14 +2,20 @@
 
 <details><summary><b>Update Information</b></summary>
 
-### v1.4.1/1.4.2
+### v1.4.4
+
+- Update things
+- Add Tool Tier
+- Add localization support for Chinese, French, German, Japanese, Korean, Russian, Portuguese, and Spanish
+
+### v1.4.1/1.4.2/v1.4.3
 
 - Update Item Manager and ServerSync internally. Warning, this will mess up your configuration file for this mod. Please reconfigure it.
--
+
 ### v1.4.0
 
 - `Note:` You will need to regenerate your configuration file. The file name has changed to fall in line with my other
-  mods. It is now `Azumatt.PvPAlways.cfg`
+  mods. It is now `Azumatt.Mjolnir.cfg`
 - The internal GUID has changed. This might mean if you're already using the mod, you would need to delete the potential
   duplicate dll that will be created.
 - Update ServerSync

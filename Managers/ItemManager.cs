@@ -595,6 +595,7 @@ public class Item
 						statcfg("Block Force", $"Block force of {englishName}.", shared => shared.m_deflectionForce, (shared, value) => shared.m_deflectionForce = value);
 						statcfg("Block Force per Level", $"Block force per level for {englishName}.", shared => shared.m_deflectionForcePerLevel, (shared, value) => shared.m_deflectionForcePerLevel = value);
 						statcfg("Parry Bonus", $"Parry bonus of {englishName}.", shared => shared.m_timedBlockBonus, (shared, value) => shared.m_timedBlockBonus = value);
+						statcfg("Tool tier", $"Tool tier of {englishName}.", shared => shared.m_toolTier, (shared, value) => shared.m_toolTier = value);
 					}
 					else if (itemType is ItemDrop.ItemData.ItemType.Chest or ItemDrop.ItemData.ItemType.Hands or ItemDrop.ItemData.ItemType.Helmet or ItemDrop.ItemData.ItemType.Legs or ItemDrop.ItemData.ItemType.Shoulder)
 					{
@@ -602,10 +603,10 @@ public class Item
 						statcfg("Armor per Level", $"Armor per level for {englishName}.", shared => shared.m_armorPerLevel, (shared, value) => shared.m_armorPerLevel = value);
 					}
 
-					if (shared.m_skillType is Skills.SkillType.Axes or Skills.SkillType.Pickaxes)
+					/*if (shared.m_skillType is Skills.SkillType.Axes or Skills.SkillType.Pickaxes)
 					{
 						statcfg("Tool tier", $"Tool tier of {englishName}.", shared => shared.m_toolTier, (shared, value) => shared.m_toolTier = value);
-					}
+					}*/
 
 					if (itemType is ItemDrop.ItemData.ItemType.Shield or ItemDrop.ItemData.ItemType.Chest or ItemDrop.ItemData.ItemType.Hands or ItemDrop.ItemData.ItemType.Helmet or ItemDrop.ItemData.ItemType.Legs or ItemDrop.ItemData.ItemType.Shoulder)
 					{

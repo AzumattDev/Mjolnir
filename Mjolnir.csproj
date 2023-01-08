@@ -139,6 +139,14 @@
       <Content Include="ThunderStore\Mjolnir.zip" />
       <Content Include="ThunderStore\Mjolnir_v1.4.3.zip" />
       <Content Include="ThunderStore\README.md" />
+      <Content Include="translations\Chinese.yml" />
+      <Content Include="translations\French.yml" />
+      <Content Include="translations\German.yml" />
+      <Content Include="translations\Japanese.yml" />
+      <Content Include="translations\Korean.yml" />
+      <Content Include="translations\Portuguese.yml" />
+      <Content Include="translations\Russian.yml" />
+      <Content Include="translations\Spanish.yml" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <Import Project="packages\ILRepack.Lib.MSBuild.Task.2.0.18.2\build\ILRepack.Lib.MSBuild.Task.targets" Condition="Exists('packages\ILRepack.Lib.MSBuild.Task.2.0.18.2\build\ILRepack.Lib.MSBuild.Task.targets')" />

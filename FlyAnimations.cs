@@ -109,13 +109,13 @@ namespace Mjolnir
         {
             private static void Postfix()
             {
-                Player.m_localPlayer.m_zanim.SetBool(Character.onGround, true);
-                Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 0f);
+                Player.m_localPlayer.m_zanim.SetBool(Character.s_onGround, true);
+                Player.m_localPlayer.m_zanim.SetFloat(Character.s_forwardSpeed, 0f);
                 Player.m_localPlayer.m_animator.runtimeAnimatorController = CustomDebugFly;
                 if (ZInput.GetButton("Forward") && !ZInput.GetButton("Run"))
-                    Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 1f);
+                    Player.m_localPlayer.m_zanim.SetFloat(Character.s_forwardSpeed, 1f);
                 else if (Input.GetKey(KeyCode.W) && ZInput.GetButton("Run"))
-                    Player.m_localPlayer.m_zanim.SetFloat(Character.forward_speed, 10f);
+                    Player.m_localPlayer.m_zanim.SetFloat(Character.s_forwardSpeed, 10f);
                 else if (ZInput.GetButton("Left"))
                     Player.m_localPlayer.m_zanim.SetTrigger("emote_cheer");
                 else if (ZInput.GetButton("Right"))

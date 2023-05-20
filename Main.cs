@@ -14,7 +14,7 @@ namespace Mjolnir;
 [BepInPlugin(ModGUID, ModName, ModVersion)]
 public class MjolnirPlugin : BaseUnityPlugin
 {
-    public const string ModVersion = "1.4.4";
+    public const string ModVersion = "1.5.0";
     public const string ModGUID = "Azumatt.Mjolnir";
     public const string ModAuthor = "Azumatt";
     public const string ModName = "Mjolnir";
@@ -247,7 +247,7 @@ public class MjolnirPlugin : BaseUnityPlugin
         public override bool IsValid(object value) => true;
 
         public override string ToDescriptionString() =>
-            "# Acceptable values: " + string.Join(", ", KeyboardShortcut.AllKeyCodes);
+            "# Acceptable values: " + string.Join(", ", UnityInput.Current.SupportedKeyCodes);
     }
 
     #endregion

@@ -86,12 +86,9 @@ public class Localizer
 			if (reference.TryGetTarget(out Localization localization))
 			{
 				Dictionary<string, string> texts = loadedTexts[localizationLanguage.GetOrCreateValue(localization)];
-				if (!texts.ContainsKey(key))
+				if (!localization.m_translations.ContainsKey(key))
 				{
 					texts[key] = text;
-				}
-				if (texts[key] == text)
-				{
 					localization.AddWord(key, text);
 				}
 			}
@@ -116,7 +113,20 @@ public class Localizer
 		}
 		localizationLanguage.Add(__instance, language);
 
-		Dictionary<string, string> localizationFiles = Directory.GetFiles(Path.GetDirectoryName(Paths.PluginPath)!, $"{plugin.Info.Metadata.Name}.*", SearchOption.AllDirectories).Where(f => fileExtensions.IndexOf(Path.GetExtension(f)) >= 0).ToDictionary(f => Path.GetFileNameWithoutExtension(f).Split('.')[1], f => f);
+		Dictionary<string, string> localizationFiles = new();
+		foreach (string file in Directory.GetFiles(Path.GetDirectoryName(Paths.PluginPath)!, $"{plugin.Info.Metadata.Name}.*", SearchOption.AllDirectories).Where(f => fileExtensions.IndexOf(Path.GetExtension(f)) >= 0))
+		{
+			string key = Path.GetFileNameWithoutExtension(file).Split('.')[1];
+			if (localizationFiles.ContainsKey(key))
+			{
+				// Handle duplicate key
+				UnityEngine.Debug.LogWarning($"Duplicate key {key} found for {plugin.Info.Metadata.Name}. The duplicate file found at {file} will be skipped.");
+			}
+			else
+			{
+				localizationFiles[key] = file;
+			}
+		}
 
 		if (LoadTranslationFromAssembly("English") is not { } englishAssemblyData)
 		{
@@ -180,10 +190,14 @@ public class Localizer
 		return null;
 	}
 
-	private static byte[]? ReadEmbeddedFileBytes(string name)
+	public static byte[]? ReadEmbeddedFileBytes(string resourceFileName, Assembly? containingAssembly = null)
 	{
 		using MemoryStream stream = new();
-		Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetName().Name + "." + name)?.CopyTo(stream);
+		containingAssembly ??= Assembly.GetCallingAssembly();
+		if (containingAssembly.GetManifestResourceNames().FirstOrDefault(str => str.EndsWith(resourceFileName, StringComparison.Ordinal)) is { } name)
+		{
+			containingAssembly.GetManifestResourceStream(name)?.CopyTo(stream);
+		}
 		return stream.Length == 0 ? null : stream.ToArray();
 	}
 }

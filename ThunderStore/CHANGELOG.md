@@ -1,6 +1,11 @@
+### v1.5.1
+
+- Add the ability to toggle if flight should use stamina or not. Default is true.
+
 ### v1.5.0
 
-- Update for Valheim 0.216.5
+- Update for Valheim 0.216.9
+
 ### v1.4.4
 
 - Update things

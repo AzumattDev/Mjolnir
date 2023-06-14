@@ -14,7 +14,7 @@ namespace Mjolnir;
 [BepInPlugin(ModGUID, ModName, ModVersion)]
 public class MjolnirPlugin : BaseUnityPlugin
 {
-    public const string ModVersion = "1.5.0";
+    public const string ModVersion = "1.5.1";
     public const string ModGUID = "Azumatt.Mjolnir";
     public const string ModAuthor = "Azumatt";
     public const string ModName = "Mjolnir";
@@ -45,8 +45,7 @@ public class MjolnirPlugin : BaseUnityPlugin
 
         Item mjolnirItem = new("mjolnir", "Mjolnir", "EmbeddedAsset");
         mjolnirItem.Name.English("Mjölnir");
-        mjolnirItem.Description.English(
-            "Whosoever holds this hammer, if he be worthy, shall possess the power of Thor.");
+        mjolnirItem.Description.English("Whosoever holds this hammer, if he be worthy, shall possess the power of Thor.");
         mjolnirItem.Crafting.Add(CraftingTable.Forge, 4);
         mjolnirItem.MaximumRequiredStationLevel = 4;
         mjolnirItem.RequiredItems.Add("FineWood", 30);
@@ -137,15 +136,18 @@ public class MjolnirPlugin : BaseUnityPlugin
     public void UpdateMjolnirFlight(float dt)
     {
         Player p = Player.m_localPlayer;
-        p.UseStamina(dt);
-        if (p.m_stamina == 0f)
+        if (ShouldUseStamina.Value == Toggle.On)
         {
-            Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
-            _flight = !_flight;
-            Player.m_localPlayer.m_body.useGravity = _flight;
-            Player.m_localPlayer.m_animator.runtimeAnimatorController = FlightAnimations.OrigDebugFly;
-            // Player.m_localPlayer.m_nview.GetZDO().Set("DebugFly", this.flight);
-            Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + _flight);
+            p.UseStamina(dt);
+            if (p.m_stamina == 0f)
+            {
+                Player.m_localPlayer.m_zanim.SetTrigger("emote_stop");
+                _flight = !_flight;
+                Player.m_localPlayer.m_body.useGravity = _flight;
+                Player.m_localPlayer.m_animator.runtimeAnimatorController = FlightAnimations.OrigDebugFly;
+                // Player.m_localPlayer.m_nview.GetZDO().Set("DebugFly", this.flight);
+                Player.m_localPlayer.Message(MessageHud.MessageType.TopLeft, "Mjolnir fly:" + _flight);
+            }
         }
 
         float num = p.m_run ? 50f : 20f;
@@ -206,6 +208,7 @@ public class MjolnirPlugin : BaseUnityPlugin
 
     public static ConfigEntry<Toggle> NoCraft = null!;
     public static ConfigEntry<Toggle> NoFlight = null!;
+    public static ConfigEntry<Toggle> ShouldUseStamina = null!;
     public static ConfigEntry<string> NoFlightMessage = null!;
     internal static ConfigEntry<KeyboardShortcut> FlightHotKey;
 

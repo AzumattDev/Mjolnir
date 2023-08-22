@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using HarmonyLib;
 
 namespace Mjolnir.Util;
@@ -18,6 +22,7 @@ public static class RegisterAndCheckVersion
         MjolnirPlugin.MJOLLogger.LogDebug("Invoking version check");
         ZPackage zpackage = new();
         zpackage.Write(MjolnirPlugin.ModVersion);
+        zpackage.Write(RpcHandlers.ComputeHashForMod().Replace("-", ""));
         peer.m_rpc.Invoke($"{MjolnirPlugin.ModName}_VersionCheck", zpackage);
     }
 }
@@ -37,7 +42,7 @@ public static class VerifyClient
 
     private static void Postfix(ZNet __instance)
     {
-        ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), "MjolnirRequestAdminSync",
+        ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), $"{MjolnirPlugin.ModName}RequestAdminSync",
             new ZPackage());
     }
 }
@@ -76,17 +81,18 @@ public static class RpcHandlers
     public static void RPC_Mjolnir_Version(ZRpc rpc, ZPackage pkg)
     {
         string? version = pkg.ReadString();
+        string? hash = pkg.ReadString();
+
+        var hashForAssembly = ComputeHashForMod().Replace("-", "");
         MjolnirPlugin.MJOLLogger.LogInfo("Version check, local: " +
-                                            MjolnirPlugin.ModVersion +
-                                            ",  remote: " + version);
-        if (version != MjolnirPlugin.ModVersion)
+                                         MjolnirPlugin.ModVersion +
+                                         ",  remote: " + version);
+        if (hash != hashForAssembly || version != MjolnirPlugin.ModVersion)
         {
-            MjolnirPlugin.ConnectionError =
-                $"{MjolnirPlugin.ModName} Installed: {MjolnirPlugin.ModVersion}\n Needed: {version}";
+            MjolnirPlugin.ConnectionError = $"{MjolnirPlugin.ModName} Installed: {MjolnirPlugin.ModVersion} {hashForAssembly}\n Needed: {version} {hash}";
             if (!ZNet.instance.IsServer()) return;
             // Different versions - force disconnect client from server
-            MjolnirPlugin.MJOLLogger.LogWarning(
-                $"Peer ({rpc.m_socket.GetHostName()}) has incompatible version, disconnecting");
+            MjolnirPlugin.MJOLLogger.LogWarning($"Peer ({rpc.m_socket.GetHostName()}) has incompatible version, disconnecting...");
             rpc.Invoke("Error", 3);
         }
         else
@@ -104,5 +110,20 @@ public static class RpcHandlers
                 ValidatedPeers.Add(rpc);
             }
         }
+    }
+
+    public static string ComputeHashForMod()
+    {
+        using SHA256 sha256Hash = SHA256.Create();
+        // ComputeHash - returns byte array  
+        byte[] bytes = sha256Hash.ComputeHash(File.ReadAllBytes(Assembly.GetExecutingAssembly().Location));
+        // Convert byte array to a string   
+        StringBuilder builder = new();
+        foreach (byte b in bytes)
+        {
+            builder.Append(b.ToString("X2"));
+        }
+
+        return builder.ToString();
     }
 }

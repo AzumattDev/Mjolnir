@@ -1,3 +1,7 @@
+### v1.6.0
+
+- Update for Hildir's Request
+
 ### v1.5.1
 
 - Add the ability to toggle if flight should use stamina or not. Default is true.
@@ -14,7 +18,8 @@
 
 ### v1.4.1/1.4.2/v1.4.3
 
-- Update Item Manager and ServerSync internally. Warning, this will mess up your configuration file for this mod. Please reconfigure it.
+- Update Item Manager and ServerSync internally. Warning, this will mess up your configuration file for this mod. Please
+  reconfigure it.
 
 ### v1.4.0
 

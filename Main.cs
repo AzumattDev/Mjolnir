@@ -14,18 +14,17 @@ namespace Mjolnir;
 [BepInPlugin(ModGUID, ModName, ModVersion)]
 public class MjolnirPlugin : BaseUnityPlugin
 {
-    public const string ModVersion = "1.5.1";
-    public const string ModGUID = "Azumatt.Mjolnir";
-    public const string ModAuthor = "Azumatt";
+    public const string ModVersion = "1.5.2";
     public const string ModName = "Mjolnir";
+    public const string Author = "Azumatt";
+    private const string ModGUID = Author + "." + ModName;
     public static readonly ManualLogSource MJOLLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
     private static string ConfigFileName = ModGUID + ".cfg";
     private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
     internal static string ConnectionError = "";
-    public static MjolnirPlugin context;
+    public static MjolnirPlugin Context = null!;
 
-    internal static readonly ConfigSync? configSync = new(ModName)
-        { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
+    internal static readonly ConfigSync? configSync = new(ModName) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
 
     private bool _flight;
 
@@ -39,7 +38,7 @@ public class MjolnirPlugin : BaseUnityPlugin
 
     public void Awake()
     {
-        context = this;
+        Context = this;
         Localizer.Load();
         Util.Functions.ConfigGen();
 
@@ -210,7 +209,7 @@ public class MjolnirPlugin : BaseUnityPlugin
     public static ConfigEntry<Toggle> NoFlight = null!;
     public static ConfigEntry<Toggle> ShouldUseStamina = null!;
     public static ConfigEntry<string> NoFlightMessage = null!;
-    internal static ConfigEntry<KeyboardShortcut> FlightHotKey;
+    internal static ConfigEntry<KeyboardShortcut> FlightHotKey = null!;
 
     internal ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,
         bool synchronizedSetting = true)
@@ -223,7 +222,7 @@ public class MjolnirPlugin : BaseUnityPlugin
         ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
         //var configEntry = Config.Bind(group, name, value, description);
 
-        SyncedConfigEntry<T> syncedConfigEntry = configSync.AddConfigEntry(configEntry);
+        SyncedConfigEntry<T> syncedConfigEntry = configSync!.AddConfigEntry(configEntry);
         syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
 
         return configEntry;

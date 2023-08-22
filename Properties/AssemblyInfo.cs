@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle(Mjolnir.MjolnirPlugin.ModName)]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany(Mjolnir.MjolnirPlugin.ModAuthor)]
+[assembly: AssemblyCompany(Mjolnir.MjolnirPlugin.Author)]
 [assembly: AssemblyProduct(Mjolnir.MjolnirPlugin.ModName)]
 [assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
